@@ -52,8 +52,8 @@ export default function LoginPage() {
           <span>←</span>
           Volver al sitio
         </Link>
-        <span className="font-display italic text-[18px] text-[color:var(--color-paper)]">
-          Ivana Maritano
+        <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">
+          SINCHI®
         </span>
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
           Admin · 2026
@@ -68,7 +68,7 @@ export default function LoginPage() {
 
         <div className="col-span-12 md:col-span-8 md:col-start-4">
           <h1
-            className="font-display italic font-light leading-[0.9] tracking-[-0.04em]"
+            className="font-display font-black italic leading-[0.9] tracking-[-0.04em]"
             style={{ fontSize: "clamp(56px, 10vw, 160px)" }}
           >
             Cuarto<br />
@@ -140,7 +140,7 @@ export default function LoginPage() {
       {/* Bottom mark */}
       <div className="relative px-6 md:px-10 pb-10 pt-20 flex items-center justify-between">
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
-          Estudio Ivana Maritano · Córdoba, AR
+          Estudio SINCHI® · Córdoba, AR
         </span>
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
           v1.0

@@ -40,7 +40,7 @@ function ContactCard({ onClose, dark = false }: { onClose: () => void; dark?: bo
 
       <div className="space-y-2">
         <p
-          className={`font-display italic font-light leading-[0.95] tracking-[-0.02em] ${
+          className={`font-display font-black italic leading-[0.95] tracking-[-0.02em] ${
             dark ? "text-[color:var(--color-paper)]" : "text-[color:var(--color-ink)]"
           }`}
           style={{ fontSize: "clamp(36px, 5vw, 56px)" }}

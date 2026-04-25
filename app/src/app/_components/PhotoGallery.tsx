@@ -136,7 +136,7 @@ export function PhotoGallery({
             Inicio
           </Link>
           <span className="font-display italic text-[18px] hidden sm:inline shrink-0">
-            Ivana Maritano
+            SINCHI®
           </span>
           <span
             className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] truncate flex-1"
@@ -184,7 +184,7 @@ export function PhotoGallery({
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="font-display italic font-light leading-[0.92] tracking-[-0.04em]"
+              className="font-display font-black italic leading-[0.92] tracking-[-0.04em]"
               style={{ fontSize: "clamp(48px, 9vw, 140px)" }}
             >
               {bibNumber ? (
@@ -437,7 +437,7 @@ export function PhotoGallery({
             >
               <div className="flex items-center gap-5">
                 <span className="font-display italic text-[18px] text-[color:var(--color-paper)]">
-                  Ivana Maritano
+                  SINCHI®
                 </span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60">
                   {String(lightboxIdx + 1).padStart(2, "0")} /{" "}

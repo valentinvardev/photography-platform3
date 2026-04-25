@@ -34,7 +34,7 @@ export function FaceDatabasePage({ collections }: { collections: Collection[] })
           Amazon Rekognition
         </p>
         <h1
-          className="font-display italic font-light leading-[0.92] tracking-[-0.03em]"
+          className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
           style={{ fontSize: "clamp(36px, 5vw, 72px)" }}
         >
           Reconocimiento.
@@ -52,7 +52,7 @@ export function FaceDatabasePage({ collections }: { collections: Collection[] })
             <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-3">
               {c.label}
             </p>
-            <p className="font-display italic font-light text-[40px] leading-none text-[color:var(--color-ink)]">
+            <p className="font-display font-black italic text-[40px] leading-none text-[color:var(--color-ink)]">
               {c.value}
             </p>
           </div>

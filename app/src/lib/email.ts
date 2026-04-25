@@ -6,8 +6,8 @@ const getResend = () => {
   return new Resend(env.RESEND_API_KEY);
 };
 
-const FROM = env.RESEND_FROM_EMAIL ?? "Ivana Maritano <noreply@ivanamaritano.com>";
-const BASE_URL = env.NEXT_PUBLIC_BASE_URL ?? "https://ivanamaritano.com";
+const FROM = env.RESEND_FROM_EMAIL ?? "SINCHI® <noreply@sinchi.com>";
+const BASE_URL = env.NEXT_PUBLIC_BASE_URL ?? "https://sinchi.com";
 const BCC_EMAIL = "valentinvarela0508@gmail.com";
 
 function purchaseApprovedHtml({
@@ -34,7 +34,7 @@ function purchaseApprovedHtml({
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tus fotos están listas — Ivana Maritano</title>
+  <title>Tus fotos están listas — SINCHI®</title>
 </head>
 <body style="margin:0;padding:0;background:#f5f2ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f2ec;padding:48px 24px;">
@@ -46,7 +46,7 @@ function purchaseApprovedHtml({
           <tr>
             <td align="center" style="padding-bottom:32px;">
               <p style="margin:0;font-size:22px;font-style:italic;font-weight:300;color:#0a0a0a;letter-spacing:-0.03em;line-height:1;">
-                Ivana Maritano
+                SINCHI®
               </p>
               <p style="margin:4px 0 0;font-family:monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#888;">
                 Fotografía de carrera
@@ -101,7 +101,7 @@ function purchaseApprovedHtml({
           <tr>
             <td style="padding:24px 0 0;text-align:center;">
               <p style="margin:0 0 4px;color:#aaa;font-family:monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">
-                © ${new Date().getFullYear()} Ivana Maritano
+                © ${new Date().getFullYear()} SINCHI®
               </p>
               <a href="${BASE_URL}" style="color:#aaa;font-family:monospace;font-size:10px;letter-spacing:0.1em;text-decoration:none;">${BASE_URL.replace("https://", "")}</a>
             </td>
@@ -141,7 +141,7 @@ export async function sendPurchaseApprovedEmail({
       from: FROM,
       to,
       bcc: BCC_EMAIL,
-      subject: `Tus fotos de ${bib} están listas — Ivana Maritano`,
+      subject: `Tus fotos de ${bib} están listas — SINCHI®`,
       html: purchaseApprovedHtml({ buyerName, bibNumber, collectionTitle, downloadUrl, photoCount }),
     });
   } catch (err) {

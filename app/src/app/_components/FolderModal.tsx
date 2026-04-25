@@ -192,7 +192,7 @@ export function BibCheckoutModal({
                   : `${photoIds.length} foto${photoIds.length !== 1 ? "s" : ""} seleccionada${photoIds.length !== 1 ? "s" : ""}`}
               </p>
               <h2
-                className="mt-3 font-display italic font-light leading-[0.95] tracking-[-0.02em] text-[color:var(--color-ink)]"
+                className="mt-3 font-display font-black italic leading-[0.95] tracking-[-0.02em] text-[color:var(--color-ink)]"
                 style={{ fontSize: "clamp(36px, 5vw, 56px)" }}
               >
                 {stepTitle}

@@ -1,36 +1,30 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
-import { Barlow_Condensed, Instrument_Sans, Fragment_Mono } from "next/font/google";
+import { Kanit, Space_Mono } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { Grain } from "~/app/_components/design/Grain";
 
 export const metadata: Metadata = {
-  title: "Ivana Maritano — Fotografía",
-  description: "Fotografía deportiva. Encontrá tus imágenes por número de dorsal.",
+  title: "SINCHI® — Fotografía Deportiva",
+  description: "Mirada poderosa. Fotografía de montaña para MTB, ruta y trail. Encontrá tus fotos por número de dorsal.",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
-const barlow = Barlow_Condensed({
+const kanit = Kanit({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
   style: ["normal", "italic"],
-  variable: "--font-barlow",
+  variable: "--font-kanit",
   display: "swap",
 });
 
-const instrument = Instrument_Sans({
+const mono = Space_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-instrument",
-  display: "swap",
-});
-
-const fragment = Fragment_Mono({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-fragment",
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -38,11 +32,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="es"
-      className={`${barlow.variable} ${instrument.variable} ${fragment.variable}`}
-    >
-      <body className="bg-[color:var(--color-paper)] text-[color:var(--color-ink)] antialiased overflow-x-hidden">
+    <html lang="es" className={`${kanit.variable} ${mono.variable}`}>
+      <body className="bg-[color:var(--color-black)] text-[color:var(--color-white)] antialiased overflow-x-hidden">
         <TRPCReactProvider>
           {children}
         </TRPCReactProvider>

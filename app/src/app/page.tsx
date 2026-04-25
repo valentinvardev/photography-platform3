@@ -2,20 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { api } from "~/trpc/server";
 import { EventCard } from "~/app/_components/EventCard";
-import { CategoryCard } from "~/app/_components/CategoryCard";
 import { Nav } from "~/app/_components/design/Nav";
 import { Footer } from "~/app/_components/design/Footer";
 import { Hero } from "~/app/_components/design/Hero";
 import { Reveal } from "~/app/_components/design/Reveal";
-import { MagneticButton } from "~/app/_components/design/MagneticButton";
 
 export default async function HomePage() {
-  const [rawCollections, categories] = await Promise.all([
-    api.collection.list(),
-    api.category.list(),
-  ]);
-  const raw = rawCollections;
-  const collections = raw.map((c) => ({
+  const rawCollections = await api.collection.list();
+  const collections = rawCollections.map((c) => ({
     id: c.id,
     title: c.title,
     description: c.description,
@@ -33,36 +27,32 @@ export default async function HomePage() {
       <Nav />
       <Hero collectionsCount={collections.length} />
 
-      {/* ════════ EVENTS — contact-sheet grid ════════ */}
-      <section id="eventos" data-cursor="light" className="px-6 md:px-10 pt-12 pb-32">
+      {/* ════════ EVENTOS ════════ */}
+      <section id="eventos" data-cursor="light" className="px-6 md:px-10 pt-16 pb-32">
         <div className="max-w-[1600px] mx-auto">
-          {/* section header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16 md:mb-24">
-            <div>
-              <Reveal as="h2" delay={0.05}>
-                <span className="font-display italic font-light leading-[0.92] tracking-[-0.03em] block"
-                      style={{ fontSize: "clamp(48px, 9vw, 140px)" }}>
-                  Eventos.
-                </span>
-              </Reveal>
-            </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16 md:mb-20 pb-8 border-b border-[color:var(--color-grey-300)]">
+            <Reveal as="h2" delay={0.05}>
+              <span
+                className="font-display font-extrabold italic leading-[0.88] tracking-[-0.02em] block text-white"
+                style={{ fontSize: "clamp(40px, 7vw, 100px)" }}
+              >
+                Eventos activos.
+              </span>
+            </Reveal>
             <Reveal delay={0.1}>
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] md:text-right">
-                {String(collections.length).padStart(2, "0")} disponibles<br />
-                <span className="text-[color:var(--color-grey-500)]">
-                  Actualizado {new Intl.DateTimeFormat("es-AR", { day: "2-digit", month: "short" }).format(new Date())}
-                </span>
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-white/30 md:text-right">
+                {String(collections.length).padStart(2, "0")} disponibles
               </p>
             </Reveal>
           </div>
 
           {collections.length === 0 ? (
             <div className="border border-dashed border-[color:var(--color-grey-300)] py-32 px-8 text-center">
-              <p className="eyebrow mb-3">Estado</p>
-              <p className="font-display italic text-[44px] leading-tight">
-                Próximamente.
+              <p className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-[#FFE000] mb-4">Próximamente</p>
+              <p className="font-display font-extrabold italic text-[44px] leading-tight text-white">
+                Cargando eventos.
               </p>
-              <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+              <p className="mt-3 font-sans text-[13px] text-white/40">
                 Los próximos eventos aparecerán aquí
               </p>
             </div>
@@ -78,174 +68,96 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ════════ CATEGORIES ════════ */}
-      {categories.length > 0 && (
-        <section id="categorias" className="px-6 md:px-10 pt-0 pb-32 border-t border-[color:var(--color-grey-300)]">
-          <div className="max-w-[1600px] mx-auto">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-16 md:mb-24 pt-16">
-              <Reveal as="h2">
-                <span className="font-display italic font-light leading-[0.92] tracking-[-0.03em] block"
-                      style={{ fontSize: "clamp(48px, 9vw, 140px)" }}>
-                  Categorías.
-                </span>
-              </Reveal>
-              <Reveal delay={0.1}>
-                <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] md:text-right">
-                  {String(categories.length).padStart(2, "0")} categorías
-                </p>
-              </Reveal>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-16">
-              {categories.map((cat, i) => (
-                <Reveal key={cat.id} variant="lift" delay={i * 0.06}>
-                  <CategoryCard cat={cat} index={i} />
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ════════ BIG CTA ════════ */}
-      <section data-cursor="dark" className="relative px-6 md:px-10 py-40 bg-[color:var(--color-ink)] text-[color:var(--color-paper)] overflow-hidden">
-        {/* decorative numbered grid lines */}
-        <div className="pointer-events-none absolute inset-0 grid grid-cols-12 gap-0">
-          {Array.from({ length: 11 }).map((_, i) => (
-            <div key={i} className="border-l border-[color:var(--color-grey-900)] col-start-[var(--c)]" style={{ ["--c" as never]: i + 2 } as React.CSSProperties} />
+      {/* ════════ YELLOW CTA FULL BLEED ════════ */}
+      <section
+        data-cursor="dark"
+        className="relative px-6 md:px-10 py-32 md:py-40 bg-[#FFE000] text-[#1A1A1A] overflow-hidden"
+      >
+        {/* Subtle diagonal lines */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute top-0 bottom-0 w-[1px] bg-[#1A1A1A]/08"
+              style={{ left: `${15 + i * 18}%`, transform: "skewX(-12deg)" }}
+            />
           ))}
         </div>
 
-        <div className="relative max-w-[1600px] mx-auto grid grid-cols-12 gap-6">
-          <Reveal as="p" className="col-span-12 md:col-span-3 eyebrow text-[color:var(--color-grey-500)]">
-            Buscá tus fotos
+        <div className="relative max-w-[1600px] mx-auto">
+          <Reveal as="p" className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-[#1A1A1A]/50 mb-8">
+            Cómo funciona
           </Reveal>
 
-          <div className="col-span-12 md:col-span-8 md:col-start-4">
-            <Reveal>
-              <h2 className="font-display italic font-light leading-[0.92] tracking-[-0.04em]"
-                  style={{ fontSize: "clamp(56px, 11vw, 180px)" }}>
-                Tu momento,<br />
-                <span className="not-italic font-display text-[color:var(--color-grey-500)]">tu foto.</span>
-              </h2>
-            </Reveal>
+          <Reveal>
+            <h2
+              className="font-display font-extrabold italic leading-[0.85] tracking-[-0.03em] text-[#1A1A1A]"
+              style={{ fontSize: "clamp(52px, 10vw, 160px)" }}
+            >
+              Tu carrera.<br />
+              <span className="text-[#1A1A1A]/30">Tu imagen.</span>
+            </h2>
+          </Reveal>
 
-            <Reveal delay={0.1}>
-              <div className="mt-8 max-w-lg font-sans text-[16px] leading-[1.8] text-[color:var(--color-paper)]/75 flex flex-col gap-1">
-                <p>Entrá a tu evento y encontrá tus fotos en segundos.</p>
-                <p>Buscá por número o subiendo una selfie.</p>
-                <p>Pagás solo si te gustan.</p>
-              </div>
-            </Reveal>
-
-            <Reveal delay={0.18}>
-              <div className="mt-12 flex flex-wrap items-center gap-5">
-                <MagneticButton
-                  href="#eventos"
-                  variant="paper"
-                  size="lg"
-                  cursorLabel="ver eventos"
-                >
-                  Ver eventos
-                </MagneticButton>
-                <Link
-                  href="#contacto"
-                  className="link-draw font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/80"
-                >
-                  ¿Sos organizador? Hablemos
-                </Link>
-              </div>
-            </Reveal>
+          <div className="mt-14 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-3xl">
+            {[
+              { n: "01", title: "Elegí tu evento", body: "Encontrá la carrera o competencia en la que participaste." },
+              { n: "02", title: "Ingresá tu dorsal", body: "O subí una selfie para que te encontremos por reconocimiento facial." },
+              { n: "03", title: "Descargá tus fotos", body: "Elegís las que te gustan y pagás solo esas. Sin suscripciones." },
+            ].map((s) => (
+              <Reveal key={s.n} delay={Number(s.n) * 0.07}>
+                <div>
+                  <span className="block font-display font-extrabold italic text-[48px] leading-none text-[#1A1A1A]/20 mb-3">{s.n}</span>
+                  <p className="font-sans font-black uppercase tracking-[0.16em] text-[12px] text-[#1A1A1A] mb-2">{s.title}</p>
+                  <p className="font-sans text-[14px] leading-[1.65] text-[#1A1A1A]/60">{s.body}</p>
+                </div>
+              </Reveal>
+            ))}
           </div>
+
+          <Reveal delay={0.25}>
+            <div className="mt-14 flex flex-wrap items-center gap-5">
+              <Link
+                href="#eventos"
+                className="inline-flex items-center gap-2 px-8 py-4 bg-[#1A1A1A] text-[#FFE000] font-sans font-black text-[11px] uppercase tracking-[0.22em] hover:bg-[#0D0D0D] transition-colors duration-200"
+              >
+                Ver eventos ↗
+              </Link>
+              <Link
+                href="#contacto"
+                className="font-sans font-bold text-[11px] uppercase tracking-[0.22em] text-[#1A1A1A]/50 hover:text-[#1A1A1A] transition-colors"
+              >
+                ¿Organizás un evento? →
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ════════ MERCADOPAGO STRIP ════════ */}
-      <section data-cursor="light" className="px-6 md:px-10 py-24 border-t border-[color:var(--color-grey-300)]">
-        <div className="max-w-[1600px] mx-auto flex flex-col items-center text-center gap-10">
-          <Reveal as="p" className="eyebrow">
-            Pagos
-          </Reveal>
+      <section data-cursor="dark" className="px-6 md:px-10 py-20 bg-white">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
+          <div>
+            <p className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-[#1A1A1A]/40 mb-3">
+              Pagos
+            </p>
+            <p className="font-display font-extrabold italic text-[28px] md:text-[38px] leading-[1.0] tracking-[-0.02em] text-[#1A1A1A]">
+              Pagá seguro.<br />
+              <span className="text-[#666666]">Descargá al instante.</span>
+            </p>
+            <p className="mt-4 font-sans text-[14px] leading-[1.65] text-[#666666] max-w-sm">
+              Procesamos tu pago con MercadoPago. Tarjeta de crédito, débito o transferencia. Sin datos guardados, sin sorpresas.
+            </p>
+          </div>
           <Reveal>
             <Image
               src="/mercadopago.svg"
               alt="MercadoPago"
-              width={500}
-              height={100}
-              className="h-20 w-auto"
+              width={400}
+              height={80}
+              className="h-16 w-auto shrink-0"
             />
           </Reveal>
-          <Reveal>
-            <p className="font-display italic text-[26px] md:text-[36px] leading-[1.05] tracking-[-0.02em]">
-              Procesado de forma segura.<br />
-              <span className="text-[color:var(--color-grey-500)]">Tarjeta, transferencia o efectivo.</span>
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ════════ QUIÉN SOY ════════ */}
-      <section id="quien-soy" data-cursor="light" className="px-6 md:px-10 py-32 bg-[color:var(--color-paper)]">
-        <div className="max-w-[1600px] mx-auto grid grid-cols-12 gap-6 items-start">
-          <Reveal as="p" className="col-span-12 md:col-span-3 eyebrow">
-            (03) — Quién soy
-          </Reveal>
-
-          <div className="col-span-12 md:col-span-8 md:col-start-4">
-            <Reveal>
-              <h2 className="font-display italic font-light leading-[0.92] tracking-[-0.04em]"
-                  style={{ fontSize: "clamp(40px, 7vw, 110px)" }}>
-                El superpoder<br />
-                <span className="text-[color:var(--color-grey-500)]">de congelar el tiempo.</span>
-              </h2>
-            </Reveal>
-
-            <Reveal delay={0.1}>
-              <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="font-sans text-[16px] leading-[1.8] text-[color:var(--color-grey-700)] flex flex-col gap-5">
-                  <p className="font-display italic text-[20px] leading-[1.4] text-[color:var(--color-ink)]">
-                    Mientras caminábamos al colegio, mi hijo me preguntó:<br />
-                    <span className="text-[color:var(--color-grey-500)]">—Mami, ¿qué es lo que más te gusta de ser fotógrafa?</span>
-                  </p>
-                  <p>Mi respuesta salió simple.</p>
-                  <p>
-                    Que tengo un superpoder.<br />
-                    El de congelar el tiempo.<br />
-                    El de hacer eterno lo efímero.<br />
-                    El de encontrar, en cada click, una forma de vencer al olvido.
-                  </p>
-                  <p>
-                    Porque la vida no se detiene.<br />
-                    El instante se escapa.<br />
-                    El cuerpo cambia, los hijos crecen, la luz se apaga.
-                  </p>
-                  <p className="font-display italic text-[18px] text-[color:var(--color-ink)]">
-                    Pero ahí está la foto, latiendo todavía.
-                  </p>
-                </div>
-
-                <div className="font-sans text-[16px] leading-[1.8] text-[color:var(--color-grey-700)] flex flex-col gap-5">
-                  <p>
-                    Hace más de 20 años que la cámara es una extensión de mi cuerpo.
-                    Durante años estuve dedicada a la fotografía deportiva en el fútbol, donde aprendí a anticipar,
-                    a leer lo que va a pasar y a no fallar en el momento clave.
-                  </p>
-                  <p>
-                    Hoy trabajo en deportes, institucionales y eventos sociales, con el mismo criterio:
-                    conseguir las fotos que realmente importan.
-                  </p>
-                  <p>
-                    Por eso este espacio existe. Para que, entre todo lo que pasa, puedas encontrarte.
-                    Y quedarte con eso.
-                  </p>
-                  <p>
-                    Y también para que quienes necesitan que su evento, su marca o su historia esté bien contada,
-                    tengan a quién llamar. Con intención. Con criterio. Con imágenes que realmente funcionen.
-                  </p>
-                </div>
-              </div>
-            </Reveal>
-          </div>
         </div>
       </section>
 

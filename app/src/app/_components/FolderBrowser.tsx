@@ -48,18 +48,26 @@ const PhotoTile = memo(function PhotoTile({
       className="group relative cursor-pointer"
       onClick={() => url && onOpenLightbox(photoId, bibNumber, url)}
     >
-      {/* Frame number */}
-      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2 flex items-center justify-between">
-        <span>F. {String(index + 1).padStart(3, "0")}</span>
-        {bibNumber && <span className="text-[color:var(--color-ink)]">#{bibNumber}</span>}
-        {isFuzzy && <span className="text-[color:var(--color-safelight)]">SIMILAR</span>}
-      </p>
-
       {/* Photo */}
       <div
         className="relative overflow-hidden bg-[color:var(--color-grey-300)]"
         style={{ aspectRatio: "4/3" }}
       >
+        {/* Bib / fuzzy badges */}
+        {(bibNumber ?? isFuzzy) && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
+            {bibNumber && (
+              <span className="font-sans font-black text-[10px] uppercase tracking-[0.1em] bg-[#1A1A1A]/80 text-white px-2 py-0.5">
+                #{bibNumber}
+              </span>
+            )}
+            {isFuzzy && (
+              <span className="font-sans font-black text-[10px] uppercase tracking-[0.1em] bg-[#FFE000] text-[#1A1A1A] px-2 py-0.5">
+                Similar
+              </span>
+            )}
+          </div>
+        )}
         {/* Viewfinder corners */}
         <span className="pointer-events-none absolute top-0 left-0 w-3 h-3 border-l border-t border-[color:var(--color-paper)] z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
         <span className="pointer-events-none absolute top-0 right-0 w-3 h-3 border-r border-t border-[color:var(--color-paper)] z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -92,12 +100,14 @@ const PhotoTile = memo(function PhotoTile({
           />
         )}
 
-        {/* Hover overlay — price strip */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-3 py-3 bg-gradient-to-t from-[color:var(--color-ink)]/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-          <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]">
-            {price > 0 ? `$${price.toLocaleString("es-AR")}` : "Sin precio"}
-          </span>
-        </div>
+        {/* Price badge — always visible */}
+        {price > 0 && (
+          <div className="pointer-events-none absolute bottom-0 left-0 z-10 bg-[#1A1A1A]/80 px-2.5 py-1.5">
+            <span className="font-sans font-black text-[11px] text-[#FFE000] tracking-[0.04em]">
+              ${price.toLocaleString("es-AR")}
+            </span>
+          </div>
+        )}
 
         {/* Cart button */}
         <button
@@ -107,19 +117,29 @@ const PhotoTile = memo(function PhotoTile({
             onToggleCart(photoId, bibNumber, url, price);
           }}
           disabled={!url}
-          className={`absolute bottom-2 right-2 z-20 flex items-center gap-2 px-3 py-2 transition-all duration-200 disabled:opacity-40 ${
+          className={`absolute bottom-2 right-2 z-20 flex items-center gap-1.5 px-3 py-2 font-sans font-black uppercase tracking-[0.16em] text-[10px] transition-all duration-200 disabled:opacity-40 ${
             inCart
-              ? "bg-[color:var(--color-paper)] text-[color:var(--color-ink)] shadow-sm"
-              : "bg-[color:var(--color-ink)]/75 text-[color:var(--color-paper)] hover:bg-[color:var(--color-ink)]"
+              ? "bg-white text-[#1A1A1A]"
+              : "bg-[#FFE000] text-[#1A1A1A] hover:bg-[#D4BB00]"
           }`}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
-            <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-            <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.99-1.61L23 6H6"/>
-          </svg>
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em]">
-            {inCart ? "✓" : "+"}
-          </span>
+          {inCart ? (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              En carrito
+            </>
+          ) : (
+            <>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 01-8 0"/>
+              </svg>
+              Agregar
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -149,34 +169,30 @@ const CartBar = memo(function CartBar({
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 w-[min(560px,calc(100vw-32px))]"
         >
-          <div className="flex items-center gap-3 px-4 sm:px-5 py-4 bg-[color:var(--color-ink)] text-[color:var(--color-paper)] shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60 hidden sm:inline">
-              ({String(count).padStart(2, "0")})
-            </span>
+          <div className="flex items-center gap-3 px-4 sm:px-5 py-3.5 bg-[#1A1A1A] border border-[#FFE000]/30 shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFE000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+              <path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 01-8 0"/>
+            </svg>
             <div className="flex-1 min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60">
-                Carrito
-              </p>
-              <p className="font-display italic text-[20px] leading-tight truncate">
-                {count} {count === 1 ? "foto" : "fotos"} ·{" "}
-                <span className="text-[color:var(--color-paper)]/65">
-                  {total > 0 ? `$${total.toLocaleString("es-AR")}` : "—"}
-                </span>
+              <p className="font-sans font-black text-[13px] text-white truncate">
+                {count} {count === 1 ? "foto" : "fotos"}{total > 0 ? ` · $${total.toLocaleString("es-AR")}` : ""}
               </p>
             </div>
             <button
               onClick={onClear}
-              className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60 hover:text-[color:var(--color-paper)] transition-colors px-2"
+              className="font-sans font-bold uppercase tracking-[0.16em] text-[10px] text-white/40 hover:text-white transition-colors px-2 shrink-0"
               aria-label="Vaciar"
             >
-              [×]
+              ×
             </button>
             <button
               onClick={onCheckout}
-              className="group inline-flex items-center gap-3 border border-[color:var(--color-paper)] bg-[color:var(--color-paper)] text-[color:var(--color-ink)] px-4 py-2.5 hover:bg-transparent hover:text-[color:var(--color-paper)] transition-colors"
+              className="group inline-flex items-center gap-2 bg-[#FFE000] text-[#1A1A1A] px-5 py-2.5 font-sans font-black uppercase tracking-[0.16em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200 shrink-0"
             >
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em]">Comprar</span>
-              <span className="font-mono text-[10px] tracking-[0.22em] transition-transform group-hover:translate-x-1">→</span>
+              Comprar
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </button>
           </div>
         </motion.div>
@@ -192,7 +208,7 @@ const SectionLabel = memo(function SectionLabel({ label }: { index?: string; lab
     <div className="flex items-end justify-between mb-6 mt-2 gap-6">
       <div>
         <h3
-          className="font-display italic font-light leading-[0.95] tracking-[-0.02em] text-[color:var(--color-ink)]"
+          className="font-display font-black italic leading-[0.95] tracking-[-0.02em] text-[color:var(--color-ink)]"
           style={{ fontSize: "clamp(28px, 4vw, 48px)" }}
         >
           {label}
@@ -473,47 +489,67 @@ export function FolderBrowser({
   return (
     <section id="search" className="max-w-[1600px] mx-auto px-6 md:px-10 py-16 pb-32">
       {/* ── Search panel ───────────────────────────────────── */}
-      <div className="mx-auto mb-20 max-w-3xl">
-        <p className="eyebrow mb-5">Buscá tus fotos</p>
-        <div className="border border-[color:var(--color-grey-300)] rounded-sm p-6 bg-white/40">
-          <label className="block font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-3">
-            Número
-          </label>
-          <div className="flex items-center gap-3 border-b-2 border-[color:var(--color-ink)] pb-3 focus-within:border-[color:var(--color-safelight)] transition-colors">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ej: 1042"
-              className="flex-1 bg-transparent border-0 outline-none font-display italic text-[44px] md:text-[72px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)] placeholder:text-[color:var(--color-grey-300)]"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors shrink-0"
-              >
-                ×
-              </button>
-            )}
+      {/* ── Search panel ───────────────────────────────────── */}
+      <div className="mb-20">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[color:var(--color-grey-300)]">
+          <span className="block w-6 h-[2px] bg-[#FFE000]" />
+          <span className="font-sans font-bold uppercase tracking-[0.28em] text-[#FFE000] text-[10px]">
+            Buscá tus fotos
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
+          {/* Dorsal input */}
+          <div>
+            <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-4">
+              Número de dorsal
+            </label>
+            <div className="flex items-end gap-3 border-b-2 border-white/20 pb-3 focus-within:border-[#FFE000] transition-colors duration-200">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="1042"
+                className="flex-1 bg-transparent border-0 outline-none font-display font-extrabold italic text-[56px] md:text-[80px] leading-none tracking-[-0.02em] text-white placeholder:text-white/15"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-white/30 hover:text-white transition-colors shrink-0 mb-2"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <p className="mt-3 font-sans text-[13px] text-white/35 leading-[1.5]">
+              Las vistas previas incluyen marca de agua.
+            </p>
           </div>
 
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void handleFaceUpload(f);
-            }}
-          />
+          {/* Face search */}
+          <div className="flex flex-col justify-between gap-6">
+            <div>
+              <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-4">
+                Búsqueda por selfie
+              </label>
+              <p className="font-sans text-[14px] leading-[1.65] text-white/45">
+                Subí una foto tuya y encontramos tus capturas por reconocimiento facial.
+              </p>
+            </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
-            <p className="font-sans text-[14px] leading-[1.5] text-[color:var(--color-grey-700)] max-w-md">
-              Ingresá tu número o usá la búsqueda por selfie.{" "}
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)]">Las vistas previas tienen marca de agua.</span>
-            </p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFaceUpload(f);
+              }}
+            />
+
             <button
               onClick={() => {
                 if (faceStatus === "uploading") return;
@@ -525,63 +561,51 @@ export function FolderBrowser({
                 fileRef.current?.click();
               }}
               disabled={faceStatus === "uploading"}
-              className="group inline-flex items-center gap-3 border border-[color:var(--color-ink)] px-5 py-3 hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)] transition-colors disabled:opacity-50"
+              className="group inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-6 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200 disabled:opacity-50 self-start"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
-                <rect x="3" y="7" width="18" height="13" rx="2"/>
-                <path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"/>
-                <circle cx="12" cy="13.5" r="2.5"/>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <path d="M2 9V5a2 2 0 012-2h4"/>
+                <path d="M16 3h4a2 2 0 012 2v4"/>
+                <path d="M22 15v4a2 2 0 01-2 2h-4"/>
+                <path d="M8 21H4a2 2 0 01-2-2v-4"/>
+                <circle cx="12" cy="12" r="3"/>
               </svg>
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em]">
-                {faceStatus === "uploading" ? "Analizando…" : "Buscar con selfie"}
-              </span>
-              <span className="font-mono text-[10px] tracking-[0.22em] transition-transform group-hover:translate-x-1">
-                →
-              </span>
+              {faceStatus === "uploading" ? "Analizando…" : "Subir selfie"}
+              <span className="transition-transform group-hover:translate-x-0.5">→</span>
             </button>
-          </div>
 
-          {/* Status feedback */}
-          {faceStatus === "done" && (
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
-              {faceBibs?.length
-                ? `${faceBibs.length} coincidencia${faceBibs.length !== 1 ? "s" : ""}`
-                : "Sin coincidencias"}{" "}
-              ·{" "}
-              <button
-                onClick={() => {
-                  setFaceStatus("idle");
-                  setFaceBibs(null);
-                  if (fileRef.current) fileRef.current.value = "";
-                }}
-                className="link-draw text-[color:var(--color-ink)]"
-              >
-                otra foto
-              </button>
-            </p>
-          )}
-          {faceStatus === "no-face" && (
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
-              No detectamos rostro ·{" "}
-              <button
-                onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }}
-                className="underline underline-offset-4"
-              >
-                intentar otra
-              </button>
-            </p>
-          )}
-          {faceStatus === "error" && (
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
-              Error al procesar ·{" "}
-              <button
-                onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }}
-                className="underline underline-offset-4"
-              >
-                reintentar
-              </button>
-            </p>
-          )}
+            {/* Status feedback */}
+            {faceStatus === "done" && (
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-white/50">
+                {faceBibs?.length
+                  ? `${faceBibs.length} coincidencia${faceBibs.length !== 1 ? "s" : ""}`
+                  : "Sin coincidencias"}{" "}
+                ·{" "}
+                <button
+                  onClick={() => { setFaceStatus("idle"); setFaceBibs(null); if (fileRef.current) fileRef.current.value = ""; }}
+                  className="text-[#FFE000] hover:underline"
+                >
+                  otra foto
+                </button>
+              </p>
+            )}
+            {faceStatus === "no-face" && (
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-[#FFE000]">
+                No detectamos rostro ·{" "}
+                <button onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }} className="underline underline-offset-4">
+                  intentar otra
+                </button>
+              </p>
+            )}
+            {faceStatus === "error" && (
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-[#FFE000]">
+                Error al procesar ·{" "}
+                <button onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }} className="underline underline-offset-4">
+                  reintentar
+                </button>
+              </p>
+            )}
+          </div>
         </div>
       </div>
 

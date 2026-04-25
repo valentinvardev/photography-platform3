@@ -22,7 +22,7 @@ export default async function DownloadPage({
             <span aria-hidden>←</span>
             Volver al sitio
           </Link>
-          <span className="font-display italic text-[18px]">Ivana Maritano</span>
+          <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">SINCHI®</span>
           <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
             Descarga · 404
           </span>
@@ -34,7 +34,7 @@ export default async function DownloadPage({
           </p>
           <div className="col-span-12 md:col-span-9 md:col-start-4">
             <h1
-              className="font-display italic font-light leading-[0.92] tracking-[-0.04em]"
+              className="font-display font-black italic leading-[0.88] tracking-[-0.02em]"
               style={{ fontSize: "clamp(56px, 10vw, 160px)" }}
             >
               Link
@@ -58,7 +58,7 @@ export default async function DownloadPage({
                 </span>
               </Link>
               <a
-                href="mailto:hola@ivanamaritano.com.ar"
+                href="mailto:hola@sinchi.com.ar"
                 className="link-draw font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/80"
               >
                 Escribirnos

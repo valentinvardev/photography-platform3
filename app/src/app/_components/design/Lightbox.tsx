@@ -224,7 +224,7 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
           >
             <div className="flex items-center gap-5">
               <span className="font-display italic text-[18px] text-[color:var(--color-paper)]">
-                Ivana Maritano
+                SINCHI®
               </span>
               {typeof index === "number" && typeof total === "number" && (
                 <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60">

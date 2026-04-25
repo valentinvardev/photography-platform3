@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
 type Props = {
@@ -24,32 +23,11 @@ export function CollectionHero({
   price,
   bannerFocalY = 50,
 }: Props) {
-  // Split title into words for staggered reveal
-  const words = title.split(" ");
-
-  // Live time
-  const [time, setTime] = useState("");
-  useEffect(() => {
-    const tick = () =>
-      setTime(
-        new Intl.DateTimeFormat("es-AR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "America/Argentina/Buenos_Aires",
-        }).format(new Date()),
-      );
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
   return (
-    <section
-      data-cursor="dark"
-      className="relative bg-[color:var(--color-ink)] text-[color:var(--color-paper)] overflow-hidden"
-      style={{ minHeight: "min(50vh, 420px)" }}
-    >
-      {/* Static background image */}
+    <section className="relative overflow-hidden bg-[#0D0D0D]" style={{ minHeight: "min(56vh, 480px)" }}>
+      {/* Banner image */}
       {bannerSrc && (
         <div className="absolute inset-0">
           <img
@@ -58,100 +36,96 @@ export function CollectionHero({
             className="w-full h-full object-cover"
             style={{ objectPosition: `50% ${bannerFocalY}%` }}
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(10,10,10,0.55) 0%, rgba(10,10,10,0.35) 40%, rgba(10,10,10,0.95) 100%)",
-            }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0D0D0D]/95 via-[#0D0D0D]/70 to-[#0D0D0D]/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D]/80 via-transparent to-transparent" />
         </div>
       )}
 
-      {/* Decorative corners */}
-      <span className="pointer-events-none absolute top-6 left-6 md:top-10 md:left-10 w-5 h-5 border-l border-t border-[color:var(--color-paper)]/40 z-10" />
-      <span className="pointer-events-none absolute top-6 right-6 md:top-10 md:right-10 w-5 h-5 border-r border-t border-[color:var(--color-paper)]/40 z-10" />
-      <span className="pointer-events-none absolute bottom-6 left-6 md:bottom-10 md:left-10 w-5 h-5 border-l border-b border-[color:var(--color-paper)]/40 z-10" />
-      <span className="pointer-events-none absolute bottom-6 right-6 md:bottom-10 md:right-10 w-5 h-5 border-r border-b border-[color:var(--color-paper)]/40 z-10" />
+      {/* Yellow left bar */}
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
 
-      {/* Top metadata strip */}
-      <div className="relative z-10 px-6 md:px-10 pt-16 md:pt-20 flex items-center justify-end">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60">
-          AR · {time}
-        </p>
-      </div>
+      {/* Content */}
+      <div className="relative z-10 flex flex-col justify-end h-full px-8 md:px-14 pt-28 pb-10">
 
-      {/* Main title */}
-      <div className="relative z-10 px-6 md:px-10 pt-16 md:pt-24 max-w-[1600px] mx-auto">
-        {logoUrl && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.92 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="mb-8 inline-block w-16 h-16 md:w-20 md:h-20 overflow-hidden"
+        {/* Logo + discipline tag */}
+        <motion.div
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease, delay: 0.05 }}
+          className="flex items-center gap-4 mb-8"
+        >
+          {logoUrl && (
+            <img src={logoUrl} alt="" className="w-10 h-10 object-cover shrink-0" />
+          )}
+          <div className="flex items-center gap-3">
+            <span className="block w-6 h-[2px] bg-[#FFE000]" />
+            <span className="font-sans font-bold uppercase tracking-[0.28em] text-[#FFE000] text-[10px]">
+              Evento · SINCHI®
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Title */}
+        <div className="overflow-hidden">
+          <motion.h1
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: "0%", opacity: 1 }}
+            transition={{ duration: 0.75, ease, delay: 0.15 }}
+            className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em] text-white"
+            style={{ fontSize: "clamp(44px, 9vw, 140px)" }}
           >
-            <img src={logoUrl} alt="" className="w-full h-full object-cover" />
-          </motion.div>
+            {title}
+          </motion.h1>
+        </div>
+
+        {/* Description */}
+        {description && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, ease, delay: 0.35 }}
+            className="mt-4 font-sans text-[14px] leading-[1.65] text-white/50 max-w-md"
+          >
+            {description}
+          </motion.p>
         )}
 
-        <h1
-          className="font-display italic font-light leading-[0.9] tracking-[-0.04em]"
-          style={{ fontSize: "clamp(48px, 11vw, 180px)" }}
-        >
-          {words.map((w, i) => (
-            <motion.span
-              key={i}
-              initial={{ y: "110%", opacity: 0 }}
-              animate={{ y: "0%", opacity: 1 }}
-              transition={{
-                duration: 0.85,
-                delay: 0.1 + i * 0.07,
-                ease: [0.16, 1, 0.3, 1],
-              }}
-              className="inline-block overflow-hidden mr-[0.25em] last:mr-0"
-              style={{ verticalAlign: "top" }}
-            >
-              {w}
-            </motion.span>
-          ))}
-        </h1>
-
-        {/* Stats + CTA row */}
+        {/* Stats strip */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-4 pb-2"
+          transition={{ duration: 0.6, ease, delay: 0.45 }}
+          className="mt-8 flex flex-wrap items-end gap-x-8 gap-y-4"
         >
           {dateStr && (
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/45 mb-0.5">Fecha</p>
-              <p className="font-display italic text-[18px] leading-tight text-[color:var(--color-paper)]">{dateStr}</p>
+              <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-1">Fecha</span>
+              <span className="block font-sans font-bold text-[14px] text-white/80">{dateStr}</span>
             </div>
           )}
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/45 mb-0.5">Capturas</p>
-            <p className="font-display italic text-[18px] leading-tight text-[color:var(--color-paper)]">{String(photoCount).padStart(3, "0")}</p>
+            <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-1">Fotos</span>
+            <span className="block font-display font-extrabold italic text-[28px] leading-none text-white">
+              {String(photoCount).padStart(3, "0")}
+            </span>
           </div>
           {price > 0 && (
             <div>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/45 mb-0.5">Por foto</p>
-              <p className="font-display italic text-[18px] leading-tight text-[color:var(--color-paper)]">${price.toLocaleString("es-AR")}</p>
+              <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-1">Por foto</span>
+              <span className="block font-display font-extrabold italic text-[28px] leading-none text-[#FFE000]">
+                ${price.toLocaleString("es-AR")}
+              </span>
             </div>
           )}
 
           <a
             href="#search"
-            className="w-full sm:w-auto sm:ml-auto justify-center inline-flex items-center gap-3 px-5 py-3 bg-[color:var(--color-paper)] text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper)]/90 transition-colors"
+            className="ml-auto inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-6 py-3 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200 shrink-0"
           >
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em]">Buscar mis fotos</span>
-            <span className="font-mono text-[11px]">↓</span>
+            Buscar mis fotos ↓
           </a>
         </motion.div>
       </div>
-
-      {/* Bottom padding spacer */}
-      <div className="relative z-10 pb-10" />
     </section>
   );
 }

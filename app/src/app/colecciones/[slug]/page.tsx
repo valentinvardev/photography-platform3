@@ -34,23 +34,24 @@ export default async function CollectionPage({
     <CartProvider>
       <main data-cursor="light" className="relative bg-[color:var(--color-paper)] text-[color:var(--color-ink)] min-h-screen">
         {/* Compact, page-specific nav */}
-        <nav className="sticky top-0 z-50 bg-[color:var(--color-paper)]/85 backdrop-blur-xl border-b border-[color:var(--color-grey-300)]">
-          <div className="max-w-[1600px] mx-auto px-6 md:px-10 h-16 flex items-center gap-6">
+        <nav className="sticky top-0 z-50 bg-[#1A1A1A]/90 backdrop-blur-xl border-b border-[color:var(--color-grey-300)]">
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
+          <div className="max-w-[1600px] mx-auto px-8 md:px-14 h-16 flex items-center gap-6">
             <Link
               href="/"
-              className="link-draw font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors flex items-center gap-2 shrink-0"
+              className="font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/50 hover:text-white transition-colors flex items-center gap-2 shrink-0"
             >
               <span aria-hidden>←</span>
               Eventos
             </Link>
-            <span className="font-display italic text-[18px] hidden sm:inline shrink-0">
-              Ivana Maritano
+            <span className="font-display font-extrabold italic text-[18px] hidden sm:inline shrink-0 text-[#FFE000]">
+              SINCHI®
             </span>
             <span
-              className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] truncate"
+              className="font-sans font-bold text-[12px] text-white/35 truncate"
               title={collection.title}
             >
-              · {collection.title}
+              / {collection.title}
             </span>
             <div className="ml-auto flex items-center gap-3">
               <NavCartButton price={price} />
@@ -75,10 +76,10 @@ export default async function CollectionPage({
         <FolderBrowser collectionId={collection.id} pricePerBib={price} />
 
         {/* MercadoPago strip */}
-        <section className="px-6 md:px-10 py-24 border-t border-[color:var(--color-grey-300)]">
+        <section className="px-6 md:px-10 py-24 bg-white">
           <div className="max-w-[1600px] mx-auto flex flex-col items-center text-center gap-10">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
-              Pagos
+            <p className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-[#1A1A1A]/50">
+              Pagos seguros
             </p>
             <Image
               src="/mercadopago.svg"
@@ -87,9 +88,9 @@ export default async function CollectionPage({
               height={100}
               className="h-20 w-auto"
             />
-            <p className="font-display italic text-[26px] md:text-[36px] leading-[1.05] tracking-[-0.02em]">
+            <p className="font-display font-bold italic text-[26px] md:text-[36px] leading-[1.05] tracking-[-0.02em] text-[#1A1A1A]">
               Procesado de forma segura.<br />
-              <span className="text-[color:var(--color-grey-500)]">Tarjeta, transferencia o efectivo.</span>
+              <span className="text-[#666666]">Tarjeta, transferencia o efectivo.</span>
             </p>
           </div>
         </section>

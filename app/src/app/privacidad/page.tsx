@@ -8,9 +8,9 @@ import {
 } from "~/app/_components/design/LegalLayout";
 
 export const metadata = {
-  title: "Privacidad — Ivana Maritano",
+  title: "Privacidad — SINCHI®",
   description:
-    "Política de privacidad y tratamiento de datos personales del estudio Ivana Maritano, conforme a la Ley 25.326.",
+    "Política de privacidad y tratamiento de datos personales del estudio SINCHI®, conforme a la Ley 25.326.",
 };
 
 export default function PrivacidadPage() {
@@ -32,11 +32,11 @@ export default function PrivacidadPage() {
       <LegalSection index="01" title="Responsable del tratamiento">
         <p>
           La responsable del tratamiento de los datos personales recolectados a través de esta plataforma
-          es <strong>Ivana Maritano</strong>, fotógrafa profesional con domicilio en la República Argentina.
+          es <strong>SINCHI®</strong>, fotógrafa profesional con domicilio en la República Argentina.
         </p>
         <p>
           Contacto para asuntos de privacidad:{" "}
-          <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a>
+          <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a>
         </p>
       </LegalSection>
 
@@ -182,7 +182,7 @@ export default function PrivacidadPage() {
         </ul>
         <p>
           Para ejercer cualquiera de estos derechos, escribinos a{" "}
-          <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a> indicando tu nombre,
+          <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a> indicando tu nombre,
           email asociado y derecho que querés ejercer. Respondemos dentro de los{" "}
           <strong>30 días hábiles</strong> conforme a la normativa.
         </p>
@@ -244,7 +244,7 @@ export default function PrivacidadPage() {
         <p>Para cualquier consulta sobre el tratamiento de tus datos personales:</p>
         <ul>
           <li>
-            Email — <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a>
+            Email — <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a>
           </li>
           <li>
             Términos —{" "}

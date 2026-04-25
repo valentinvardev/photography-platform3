@@ -20,7 +20,7 @@ export default async function AdminDashboard() {
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
           Panel de control
         </p>
-        <h1 className="font-display italic font-light leading-[0.92] tracking-[-0.03em]"
+        <h1 className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
             style={{ fontSize: "clamp(36px, 5vw, 72px)" }}>
           Dashboard.
         </h1>
@@ -153,7 +153,7 @@ function StatCard({
       <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-4">
         {label}
       </p>
-      <p className={`font-display italic font-light leading-none ${dim ? "text-[color:var(--color-grey-500)]" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
+      <p className={`font-display font-black italic leading-none ${dim ? "text-[color:var(--color-grey-500)]" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
         {value}
       </p>
       {sub && (

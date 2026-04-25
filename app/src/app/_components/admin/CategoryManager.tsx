@@ -372,7 +372,7 @@ export function CategoryManager({ initialCategories }: { initialCategories: Cate
           <p className="font-mono text-[9px] uppercase tracking-[0.26em] text-[color:var(--color-grey-500)] mb-1">
             Admin
           </p>
-          <h1 className="font-display italic font-light text-[36px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
+          <h1 className="font-display font-black italic text-[36px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
             Categorías
           </h1>
         </div>

@@ -105,7 +105,7 @@ export default async function EditCollectionPage({
               <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1">
                 Evento
               </p>
-              <h1 className="font-display italic font-light text-[28px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
+              <h1 className="font-display font-black italic text-[28px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
                 {collection.title}
               </h1>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
@@ -149,7 +149,7 @@ export default async function EditCollectionPage({
             },
           ].map((c, i) => (
             <div key={i} className="bg-[color:var(--color-paper)] px-5 py-4 text-center">
-              <p className="font-display italic font-light text-[32px] leading-none" style={{ color: c.color ?? "var(--color-ink)" }}>
+              <p className="font-display font-black italic text-[32px] leading-none" style={{ color: c.color ?? "var(--color-ink)" }}>
                 {c.value}
               </p>
               <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mt-1">

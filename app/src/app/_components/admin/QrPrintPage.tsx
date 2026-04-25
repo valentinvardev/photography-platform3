@@ -3,7 +3,7 @@
 import { useState } from "react";
 import QRCode from "react-qr-code";
 
-const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://ivanamaritano.com";
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://sinchi.com";
 const SHORT_URL = SITE_URL.replace(/^https?:\/\//, "");
 
 type Format = "sticker" | "card" | "poster" | "plain";
@@ -31,7 +31,7 @@ export function QrPrintPage() {
           Material imprimible
         </p>
         <h1
-          className="font-display italic font-light leading-[0.92] tracking-[-0.03em]"
+          className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
           style={{ fontSize: "clamp(36px, 5vw, 72px)" }}
         >
           Códigos QR.
@@ -73,9 +73,9 @@ export function QrPrintPage() {
 
           {/* PLAIN */}
           {format === "plain" && (
-            <div className="border border-[color:var(--color-grey-300)] p-8 flex flex-col items-center gap-4">
-              <QRCode value={SITE_URL} size={130} fgColor="#0a0a0a" bgColor="#ffffff" style={{ display: "block" }} />
-              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
+            <div className="border border-[#FFE000]/30 p-8 flex flex-col items-center gap-4 bg-[#0a0a0a]">
+              <QRCode value={SITE_URL} size={130} fgColor="#FFE000" bgColor="#0a0a0a" style={{ display: "block" }} />
+              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#FFE000]/40">
                 Sin bordes · Sin texto · Solo QR
               </p>
             </div>
@@ -84,18 +84,18 @@ export function QrPrintPage() {
           {/* STICKER */}
           {format === "sticker" && (
             <div style={{
-              width: 180, background: "#ffffff",
-              border: "1.5px solid #0a0a0a",
+              width: 180, background: "#0a0a0a",
+              border: "1.5px solid #FFE000",
               display: "flex", flexDirection: "column", alignItems: "center",
               padding: "16px 14px 12px", gap: 10,
             }}>
-              <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 300, fontSize: 14, color: "#0a0a0a", letterSpacing: "-0.02em", lineHeight: 1 }}>
-                Ivana Maritano
+              <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 900, fontSize: 14, color: "#FFE000", letterSpacing: "-0.02em", lineHeight: 1 }}>
+                SINCHI®
               </p>
-              <div style={{ width: "100%", height: 1, background: "#0a0a0a" }} />
-              <QRCode value={SITE_URL} size={108} fgColor="#0a0a0a" bgColor="#ffffff" style={{ display: "block" }} />
-              <div style={{ width: "100%", height: 1, background: "#0a0a0a" }} />
-              <p style={{ fontFamily: "var(--font-mono)", fontSize: 7.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#555", textAlign: "center" }}>
+              <div style={{ width: "100%", height: 1, background: "#FFE000", opacity: 0.3 }} />
+              <QRCode value={SITE_URL} size={108} fgColor="#FFE000" bgColor="#0a0a0a" style={{ display: "block" }} />
+              <div style={{ width: "100%", height: 1, background: "#FFE000", opacity: 0.3 }} />
+              <p style={{ fontFamily: "var(--font-mono)", fontSize: 7.5, letterSpacing: "0.2em", textTransform: "uppercase", color: "#FFE000", opacity: 0.45, textAlign: "center" }}>
                 Buscá tus fotos
               </p>
             </div>
@@ -103,33 +103,34 @@ export function QrPrintPage() {
 
           {/* CARD */}
           {format === "card" && (
-            <div style={{ width: 320, display: "flex", border: "1.5px solid #0a0a0a", overflow: "hidden" }}>
+            <div style={{ width: 320, display: "flex", border: "1.5px solid #FFE000", overflow: "hidden" }}>
               {/* Left: black panel */}
               <div style={{
                 width: 112, background: "#0a0a0a",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                 padding: "16px 12px", gap: 6,
+                borderRight: "1px solid rgba(255,224,0,0.2)",
               }}>
-                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 300, fontSize: 18, color: "#f5f2ec", letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center" }}>
-                  Ivana<br />Maritano
+                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 900, fontSize: 18, color: "#FFE000", letterSpacing: "-0.02em", lineHeight: 1.05, textAlign: "center" }}>
+                  SINCHI®
                 </p>
-                <div style={{ width: 28, height: 1, background: "#f5f2ec", opacity: 0.35 }} />
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 6.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "#f5f2ec", opacity: 0.5, textAlign: "center" }}>
+                <div style={{ width: 28, height: 1, background: "#FFE000", opacity: 0.35 }} />
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 6.5, letterSpacing: "0.18em", textTransform: "uppercase", color: "#FFE000", opacity: 0.45, textAlign: "center" }}>
                   {SHORT_URL}
                 </p>
               </div>
-              {/* Right: white panel */}
+              {/* Right: dark panel */}
               <div style={{
-                flex: 1, background: "#ffffff",
+                flex: 1, background: "#111111",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                 padding: "16px 14px", gap: 8,
               }}>
-                <QRCode value={SITE_URL} size={118} fgColor="#0a0a0a" bgColor="#ffffff" style={{ display: "block" }} />
-                <div style={{ width: "100%", height: 1, background: "#e5e5e5" }} />
-                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 300, fontSize: 13, color: "#0a0a0a", textAlign: "center", lineHeight: 1.2 }}>
+                <QRCode value={SITE_URL} size={118} fgColor="#FFE000" bgColor="#111111" style={{ display: "block" }} />
+                <div style={{ width: "100%", height: 1, background: "rgba(255,224,0,0.15)" }} />
+                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 900, fontSize: 13, color: "#FFE000", textAlign: "center", lineHeight: 1.2 }}>
                   ¿Corriste hoy?
                 </p>
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", color: "#888", textAlign: "center" }}>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", color: "#666", textAlign: "center" }}>
                   Buscá tus fotos con tu número
                 </p>
               </div>
@@ -138,25 +139,25 @@ export function QrPrintPage() {
 
           {/* POSTER */}
           {format === "poster" && (
-            <div style={{ width: 240, background: "#ffffff", border: "1.5px solid #0a0a0a", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div style={{ width: 240, background: "#0a0a0a", border: "1.5px solid #FFE000", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               {/* Header */}
-              <div style={{ background: "#0a0a0a", padding: "14px 18px 12px" }}>
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 7, letterSpacing: "0.22em", textTransform: "uppercase", color: "#f5f2ec", opacity: 0.5, marginBottom: 4 }}>
+              <div style={{ borderBottom: "1px solid rgba(255,224,0,0.25)", padding: "14px 18px 12px" }}>
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 7, letterSpacing: "0.22em", textTransform: "uppercase", color: "#FFE000", opacity: 0.5, marginBottom: 4 }}>
                   Fotografía de carrera
                 </p>
-                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 300, fontSize: 24, color: "#f5f2ec", letterSpacing: "-0.02em", lineHeight: 0.95 }}>
-                  Ivana<br />Maritano
+                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 900, fontSize: 24, color: "#FFE000", letterSpacing: "-0.02em", lineHeight: 0.95 }}>
+                  SINCHI®
                 </p>
               </div>
               {/* Body */}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "18px 16px 16px", gap: 10 }}>
-                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 300, fontSize: 17, color: "#0a0a0a", textAlign: "center", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+                <p style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 900, fontSize: 17, color: "#ffffff", textAlign: "center", lineHeight: 1.1, letterSpacing: "-0.02em" }}>
                   ¿Corriste hoy?<br />Encontrá tus fotos.
                 </p>
-                <div style={{ width: 28, height: 1, background: "#0a0a0a" }} />
-                <QRCode value={SITE_URL} size={148} fgColor="#0a0a0a" bgColor="#ffffff" style={{ display: "block" }} />
-                <div style={{ width: "100%", height: 1, background: "#e5e5e5" }} />
-                <p style={{ fontFamily: "var(--font-mono)", fontSize: 6.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#888", textAlign: "center", lineHeight: 1.6 }}>
+                <div style={{ width: 28, height: 1, background: "#FFE000" }} />
+                <QRCode value={SITE_URL} size={148} fgColor="#FFE000" bgColor="#0a0a0a" style={{ display: "block" }} />
+                <div style={{ width: "100%", height: 1, background: "rgba(255,224,0,0.15)" }} />
+                <p style={{ fontFamily: "var(--font-mono)", fontSize: 6.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "#555", textAlign: "center", lineHeight: 1.6 }}>
                   Escaneá el código e ingresá<br />tu número de corredor
                 </p>
               </div>
@@ -166,9 +167,9 @@ export function QrPrintPage() {
           <div className="mt-10 flex flex-col items-center gap-3">
             <button
               onClick={handlePrint}
-              className="inline-flex items-center gap-3 px-6 py-3 border border-[color:var(--color-ink)] font-mono text-[10px] uppercase tracking-[0.18em] hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)] transition-colors"
+              className="inline-flex items-center gap-3 px-6 py-3 bg-[#FFE000] text-[#1A1A1A] font-mono font-bold text-[10px] uppercase tracking-[0.18em] hover:bg-[#D4BB00] transition-colors"
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
               Imprimir / Guardar PDF

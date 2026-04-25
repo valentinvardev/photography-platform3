@@ -50,8 +50,8 @@ export function AdminShell({
           <p className="font-mono text-[9px] uppercase tracking-[0.26em] text-[color:var(--color-grey-500)] mb-1.5">
             Admin
           </p>
-          <span className="font-display italic text-[20px] leading-none text-[color:var(--color-ink)]">
-            Ivana Maritano
+          <span className="font-display font-black italic text-[20px] leading-none text-[color:var(--color-brand)]">
+            SINCHI®
           </span>
         </div>
         {/* Close — mobile only */}
@@ -83,7 +83,6 @@ export function AdminShell({
         </p>
         <NavItem href="/admin" label="Dashboard" onNavigate={close} />
         <NavItem href="/admin/colecciones" label="Eventos" onNavigate={close} />
-        <NavItem href="/admin/categorias" label="Categorías" onNavigate={close} />
         <NavItem href="/admin/ventas" label="Ventas" onNavigate={close} />
         <NavItem href="/admin/reconocimiento" label="Reconocimiento" onNavigate={close} />
         <NavItem href="/admin/qr" label="Códigos QR" onNavigate={close} />
@@ -148,8 +147,8 @@ export function AdminShell({
             <span className="block h-px w-5 bg-[color:var(--color-ink)]" />
             <span className="block h-px w-3 bg-[color:var(--color-ink)]" />
           </button>
-          <span className="font-display italic text-[18px] text-[color:var(--color-ink)]">
-            Ivana Maritano
+          <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">
+            SINCHI®
           </span>
           <span className="ml-auto font-mono text-[9px] uppercase tracking-[0.26em] text-[color:var(--color-grey-500)]">
             Admin

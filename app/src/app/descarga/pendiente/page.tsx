@@ -47,7 +47,7 @@ export default function PendingPage() {
           <span aria-hidden>←</span>
           Volver al sitio
         </Link>
-        <span className="font-display italic text-[18px]">Ivana Maritano</span>
+        <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">SINCHI®</span>
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
           AR · {time}
         </span>
@@ -70,7 +70,7 @@ export default function PendingPage() {
 
         <div className="col-span-12 md:col-span-9 md:col-start-4">
           <h1
-            className="font-display italic font-light leading-[0.92] tracking-[-0.04em] overflow-hidden"
+            className="font-display font-black italic leading-[0.88] tracking-[-0.02em] overflow-hidden"
             style={{ fontSize: "clamp(56px, 10vw, 160px)" }}
           >
             <motion.span
@@ -142,7 +142,7 @@ export default function PendingPage() {
               </span>
             </Link>
             <a
-              href="mailto:hola@ivanamaritano.com.ar"
+              href="mailto:hola@sinchi.com.ar"
               className="link-draw font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/80"
             >
               ¿Pasó algo? Escribirnos
@@ -159,7 +159,7 @@ export default function PendingPage() {
           Revisá tu casilla de correo
         </p>
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
-          Estudio Ivana Maritano · MMXXVI
+          Estudio SINCHI® · MMXXVI
         </p>
       </div>
     </main>

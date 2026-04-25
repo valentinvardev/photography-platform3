@@ -6,8 +6,8 @@ import {
 } from "~/app/_components/design/LegalLayout";
 
 export const metadata = {
-  title: "Condiciones de Servicio — Ivana Maritano",
-  description: "Términos y condiciones de uso de la plataforma de Ivana Maritano.",
+  title: "Condiciones de Servicio — SINCHI®",
+  description: "Términos y condiciones de uso de la plataforma de SINCHI®.",
 };
 
 export default function TerminosPage() {
@@ -25,8 +25,8 @@ export default function TerminosPage() {
     >
       <LegalSection index="01" title="Aceptación de las condiciones">
         <p>
-          Al acceder y utilizar la plataforma de Ivana Maritano (en adelante, &ldquo;el Servicio&rdquo;),
-          operada por <strong>Ivana Maritano</strong>, aceptás quedar vinculado por las presentes
+          Al acceder y utilizar la plataforma de SINCHI® (en adelante, &ldquo;el Servicio&rdquo;),
+          operada por <strong>SINCHI®</strong>, aceptás quedar vinculado por las presentes
           Condiciones de Servicio. Si no estás de acuerdo con alguna, no utilices el Servicio.
         </p>
         <p>
@@ -40,7 +40,7 @@ export default function TerminosPage() {
 
       <LegalSection index="02" title="Descripción del Servicio">
         <p>
-          Ivana Maritano es una plataforma de fotografía de eventos profesional que permite a
+          SINCHI® es una plataforma de fotografía de eventos profesional que permite a
           los usuarios:
         </p>
         <ul>
@@ -58,7 +58,7 @@ export default function TerminosPage() {
       <LegalSection index="03" title="Registro y cuenta de usuario">
         <p>
           Algunas funciones pueden requerir crear una cuenta. El usuario es responsable de mantener la
-          confidencialidad de sus credenciales y de la actividad que ocurra bajo su cuenta. Ivana Maritano
+          confidencialidad de sus credenciales y de la actividad que ocurra bajo su cuenta. SINCHI®
           no será responsable por pérdidas derivadas del uso no autorizado de la cuenta.
         </p>
         <p>El usuario se compromete a proporcionar información veraz y actualizada al registrarse.</p>
@@ -66,7 +66,7 @@ export default function TerminosPage() {
 
       <LegalSection index="04" title="Propiedad intelectual y licencia de uso">
         <p>
-          Todas las fotografías disponibles son propiedad exclusiva de Ivana Maritano y están
+          Todas las fotografías disponibles son propiedad exclusiva de SINCHI® y están
           protegidas por la <strong>Ley 11.723 de Propiedad Intelectual</strong> de la República
           Argentina.
         </p>
@@ -76,7 +76,7 @@ export default function TerminosPage() {
         </p>
         <ul>
           <li>Imprimir y enmarcar la fotografía para uso personal.</li>
-          <li>Compartirla en redes sociales personales, con crédito a Ivana Maritano.</li>
+          <li>Compartirla en redes sociales personales, con crédito a SINCHI®.</li>
           <li>Almacenarla en tus dispositivos personales.</li>
         </ul>
         <LegalCallout label="Prohibido" tone="safelight">
@@ -98,7 +98,7 @@ export default function TerminosPage() {
           términos de MercadoPago.
         </p>
         <p>
-          Ivana Maritano se reserva el derecho de modificar los precios en cualquier momento, sin
+          SINCHI® se reserva el derecho de modificar los precios en cualquier momento, sin
           afectar las compras ya realizadas y confirmadas.
         </p>
       </LegalSection>
@@ -116,7 +116,7 @@ export default function TerminosPage() {
         <p>
           Las solicitudes de reembolso deben realizarse dentro de los <strong>10 días corridos</strong>{" "}
           posteriores a la compra, escribiendo a{" "}
-          <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a> con el comprobante
+          <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a> con el comprobante
           de pago.
         </p>
         <LegalCallout label="Defensa del consumidor">
@@ -140,7 +140,7 @@ export default function TerminosPage() {
           desde la confirmación del pago.
         </p>
         <p>
-          Ivana Maritano no garantiza la disponibilidad indefinida de los archivos en la plataforma
+          SINCHI® no garantiza la disponibilidad indefinida de los archivos en la plataforma
           una vez transcurrido el plazo vigente para cada evento o álbum.
         </p>
       </LegalSection>
@@ -176,14 +176,14 @@ export default function TerminosPage() {
         </p>
         <p>
           Todas las fotografías disponibles en la plataforma han sido tomadas en el contexto de dichos
-          eventos. Ivana Maritano actúa como fotógrafa acreditada y no requiere autorización individual
+          eventos. SINCHI® actúa como fotógrafa acreditada y no requiere autorización individual
           de cada persona retratada en el marco de eventos públicos o privados con acceso autorizado,
           conforme a la normativa argentina vigente.
         </p>
         <p>
           Si considerás que una fotografía vulnera tus derechos de imagen, podés solicitarnos su
           revisión escribiendo a{" "}
-          <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a>.
+          <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a>.
         </p>
       </LegalSection>
 
@@ -199,7 +199,7 @@ export default function TerminosPage() {
 
       <LegalSection index="11" title="Limitación de responsabilidad">
         <p>
-          Ivana Maritano no será responsable por daños indirectos, incidentales, especiales o
+          SINCHI® no será responsable por daños indirectos, incidentales, especiales o
           consecuentes derivados del uso o imposibilidad de uso del Servicio, incluidos pérdida de
           datos o lucro cesante.
         </p>
@@ -211,7 +211,7 @@ export default function TerminosPage() {
 
       <LegalSection index="12" title="Modificaciones del servicio y las condiciones">
         <p>
-          Ivana Maritano se reserva el derecho de modificar, suspender o discontinuar el Servicio en
+          SINCHI® se reserva el derecho de modificar, suspender o discontinuar el Servicio en
           cualquier momento, con o sin previo aviso. También podrá actualizar estas Condiciones
           periódicamente. El uso continuado tras la publicación de cambios implica aceptación.
         </p>
@@ -233,7 +233,7 @@ export default function TerminosPage() {
       <LegalSection index="14" title="Contacto">
         <p>
           Para consultas relacionadas con estas Condiciones:{" "}
-          <a href="mailto:hola@ivanamaritano.com.ar">hola@ivanamaritano.com.ar</a>
+          <a href="mailto:hola@sinchi.com.ar">hola@sinchi.com.ar</a>
         </p>
       </LegalSection>
     </LegalLayout>

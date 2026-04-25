@@ -9,7 +9,7 @@ export default function ConfigPage() {
           Ajustes globales
         </p>
         <h1
-          className="font-display italic font-light leading-[0.92] tracking-[-0.03em]"
+          className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
           style={{ fontSize: "clamp(36px, 5vw, 72px)" }}
         >
           Configuración.

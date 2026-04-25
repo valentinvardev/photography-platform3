@@ -24,7 +24,7 @@ export function ConfirmModal({ title, message, confirmLabel = "Eliminar", varian
           <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
             Confirmar acción
           </p>
-          <h3 className="font-display italic font-light text-[22px] leading-tight text-[color:var(--color-ink)]">
+          <h3 className="font-display font-black italic text-[22px] leading-tight text-[color:var(--color-ink)]">
             {title}
           </h3>
           <p className="font-mono text-[10px] tracking-[0.06em] mt-2 text-[color:var(--color-grey-600)] leading-relaxed">

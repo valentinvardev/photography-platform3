@@ -57,7 +57,7 @@ export function LegalLayout({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
-              className="font-display italic font-light leading-[0.92] tracking-[-0.04em]"
+              className="font-display font-black italic leading-[0.88] tracking-[-0.02em]"
               style={{ fontSize: "clamp(48px, 9vw, 140px)" }}
             >
               {title}
@@ -93,7 +93,7 @@ export function LegalLayout({
               Documento
             </p>
             <div className="space-y-2 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
-              <p>Editor · Estudio Ivana M.</p>
+              <p>Editor · SINCHI®</p>
               <p>Jurisdicción · Argentina</p>
               <p>Vigencia · {updated}</p>
             </div>
