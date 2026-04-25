@@ -10,8 +10,8 @@
   /* ── Tipografías ── */
   /* Display / Headlines: Kanit (Google Fonts — cargada en layout.tsx) */
   --font-display: var(--font-kanit), "Kanit", ui-sans-serif, system-ui, sans-serif;
-  /* Body / UI: Helvetica Neue (sistema) — tipografía principal del manual */
-  --font-sans: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+  /* Body / UI: Barlow (Google Fonts — cargada en layout.tsx) */
+  --font-sans: var(--font-barlow), "Barlow", "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
   /* Mono: técnico / metadata */
   --font-mono: var(--font-mono), "Space Mono", ui-monospace, monospace;
 

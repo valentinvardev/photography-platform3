@@ -12,11 +12,20 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         <img
           src="/hero.jpg"
           alt=""
-          className="w-full h-full object-cover object-center"
+          className="w-full h-full object-cover"
+          style={{ objectPosition: "40% 50%" }}
         />
         {/* Layered overlays — heavy left, fade up from bottom */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0D0D0D]/95 via-[#0D0D0D]/60 to-[#0D0D0D]/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D]/90 via-[#0D0D0D]/30 to-transparent" />
+        {/* Left — heavy, for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0D0D0D]/95 via-[#0D0D0D]/55 to-transparent" style={{ width: "72%" }} />
+        {/* Top edge — for nav */}
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0D0D0D]/70 to-transparent" />
+        {/* Bottom edge — full width */}
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0D0D0D]/90 to-transparent" />
+        {/* Top-right corner vignette */}
+        <div className="absolute top-0 right-0 w-2/5 h-2/5" style={{ background: "radial-gradient(ellipse at top right, rgba(13,13,13,0.75) 0%, transparent 70%)" }} />
+        {/* Bottom-right corner vignette */}
+        <div className="absolute bottom-0 right-0 w-2/5 h-2/5" style={{ background: "radial-gradient(ellipse at bottom right, rgba(13,13,13,0.80) 0%, transparent 70%)" }} />
       </div>
 
       {/* Yellow left accent bar */}
@@ -130,8 +139,11 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, ease, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
       >
+        <span className="font-sans font-bold uppercase tracking-[0.22em] text-[9px] text-white/30">
+          Deslizá
+        </span>
         <div className="w-[1px] h-10 bg-white/20 relative overflow-hidden">
           <motion.div
             className="absolute inset-x-0 top-0 h-full bg-[#FFE000]"

@@ -95,7 +95,7 @@ export default async function HomePage() {
               style={{ fontSize: "clamp(52px, 10vw, 160px)" }}
             >
               Tu carrera.<br />
-              <span className="text-[#1A1A1A]/30">Tu imagen.</span>
+              <span className="text-white">Tu imagen.</span>
             </h2>
           </Reveal>
 
@@ -103,13 +103,13 @@ export default async function HomePage() {
             {[
               { n: "01", title: "Elegí tu evento", body: "Encontrá la carrera o competencia en la que participaste." },
               { n: "02", title: "Ingresá tu dorsal", body: "O subí una selfie para que te encontremos por reconocimiento facial." },
-              { n: "03", title: "Descargá tus fotos", body: "Elegís las que te gustan y pagás solo esas. Sin suscripciones." },
+              { n: "03", title: "Descargá tus fotos", body: "Elegís las que te gustan y pagás solo esas." },
             ].map((s) => (
               <Reveal key={s.n} delay={Number(s.n) * 0.07}>
                 <div>
-                  <span className="block font-display font-extrabold italic text-[48px] leading-none text-[#1A1A1A]/20 mb-3">{s.n}</span>
+                  <span className="block font-display font-extrabold italic text-[48px] leading-none text-white mb-3">{s.n}</span>
                   <p className="font-sans font-black uppercase tracking-[0.16em] text-[12px] text-[#1A1A1A] mb-2">{s.title}</p>
-                  <p className="font-sans text-[14px] leading-[1.65] text-[#1A1A1A]/60">{s.body}</p>
+                  <p className="font-sans font-medium text-[14px] leading-[1.65] text-[#1A1A1A]">{s.body}</p>
                 </div>
               </Reveal>
             ))}
