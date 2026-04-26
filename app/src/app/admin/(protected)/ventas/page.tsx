@@ -43,7 +43,7 @@ export default function SalesPage() {
   return (
     <div>
       <div className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
           Historial de pagos
         </p>
         <h1
@@ -60,10 +60,10 @@ export default function SalesPage() {
           <button
             key={p.id}
             onClick={() => setPeriod(p.id)}
-            className={`px-4 py-2 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors whitespace-nowrap ${
+            className={`px-4 py-2 font-mono text-[12px] uppercase tracking-[0.14em] transition-colors whitespace-nowrap ${
               period === p.id
                 ? "bg-[color:var(--color-ink)] text-[color:var(--color-paper)]"
-                : "bg-[color:var(--color-paper)] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)]"
+                : "bg-[color:var(--color-paper)] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)]"
             }`}
           >
             {p.label}
@@ -80,7 +80,7 @@ export default function SalesPage() {
           { label: "Ingresos ARS", value: stats ? `$${stats.revenue.toLocaleString("es-AR")}` : "—" },
         ].map((c, i) => (
           <div key={i} className="bg-[color:var(--color-paper)] px-5 py-5">
-            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-3">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-3">
               {c.label}
             </p>
             <p className={`font-display font-black italic text-[40px] leading-none text-[color:var(--color-ink)] transition-opacity duration-150 ${isFetching ? "opacity-30" : ""}`}>

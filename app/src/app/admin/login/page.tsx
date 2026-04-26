@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="relative flex items-center justify-between px-6 md:px-10 h-20">
         <Link
           href="/"
-          className="link-draw font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/70 hover:text-[color:var(--color-paper)] transition-colors flex items-center gap-2"
+          className="link-draw font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/70 hover:text-[color:var(--color-paper)] transition-colors flex items-center gap-2"
         >
           <span>←</span>
           Volver al sitio
@@ -55,14 +55,14 @@ export default function LoginPage() {
         <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">
           SINCHI®
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
+        <span className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
           Admin · 2026
         </span>
       </div>
 
       {/* Body */}
       <div className="relative max-w-[1600px] mx-auto px-6 md:px-10 pt-16 md:pt-28 pb-20 grid grid-cols-12 gap-6">
-        <p className="col-span-12 md:col-span-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/45">
+        <p className="col-span-12 md:col-span-3 font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/45">
           (00) — Acceso restringido
         </p>
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
             style={{ fontSize: "clamp(56px, 10vw, 160px)" }}
           >
             Cuarto<br />
-            <span className="text-[color:var(--color-grey-500)]">oscuro.</span>
+            <span className="text-[color:var(--color-grey-700)]">oscuro.</span>
           </h1>
 
           <p className="mt-10 max-w-md font-sans text-[15px] leading-[1.65] text-[color:var(--color-paper)]/70">
@@ -107,7 +107,7 @@ export default function LoginPage() {
 
             {error && (
               <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
+                <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
                   Error · auth
                 </p>
                 <p className="mt-1 font-display italic text-[18px] text-[color:var(--color-paper)]">
@@ -117,7 +117,7 @@ export default function LoginPage() {
             )}
 
             <div className="flex items-center justify-between mt-4 gap-6 flex-wrap">
-              <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
+              <span className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
                 Sesión protegida · NextAuth
               </span>
               <button
@@ -139,10 +139,10 @@ export default function LoginPage() {
 
       {/* Bottom mark */}
       <div className="relative px-6 md:px-10 pb-10 pt-20 flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
+        <span className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
           Estudio SINCHI® · Córdoba, AR
         </span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
+        <span className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/35">
           v1.0
         </span>
       </div>

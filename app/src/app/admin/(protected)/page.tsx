@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   return (
     <div>
       <div className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
           Panel de control
         </p>
         <h1 className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
@@ -44,7 +44,7 @@ export default async function AdminDashboard() {
 
       {/* Quick actions */}
       <div className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-4">
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-4">
           Acciones rápidas
         </p>
         <div className="flex flex-wrap gap-3">
@@ -58,7 +58,7 @@ export default async function AdminDashboard() {
               href={item.href}
               className="group inline-flex items-center gap-3 px-5 py-3 border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)] hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)] transition-colors"
             >
-              <span className="font-mono text-[10px] text-[color:var(--color-grey-500)] group-hover:text-[color:var(--color-paper)] transition-colors">
+              <span className="font-mono text-[12px] text-[color:var(--color-grey-700)] group-hover:text-[color:var(--color-paper)] transition-colors">
                 {item.icon}
               </span>
               <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
@@ -75,12 +75,12 @@ export default async function AdminDashboard() {
       {/* Recent sales */}
       <div>
         <div className="flex items-baseline justify-between mb-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
             Ventas recientes
           </p>
           <Link
             href="/admin/ventas"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors"
+            className="font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors"
           >
             Ver todas →
           </Link>
@@ -89,7 +89,7 @@ export default async function AdminDashboard() {
         <div className="border border-[color:var(--color-grey-300)]">
           {recentSales.items.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
                 Sin ventas registradas
               </p>
             </div>
@@ -98,7 +98,7 @@ export default async function AdminDashboard() {
               <thead>
                 <tr className="border-b border-[color:var(--color-grey-300)]">
                   {["Email", "Dorsal", "Estado", "Monto"].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                    <th key={h} className="px-5 py-3 text-left font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
                       {h}
                     </th>
                   ))}
@@ -150,14 +150,14 @@ function StatCard({
 }) {
   return (
     <div className="bg-[color:var(--color-paper)] px-5 py-5">
-      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-4">
+      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-4">
         {label}
       </p>
-      <p className={`font-display font-black italic leading-none ${dim ? "text-[color:var(--color-grey-500)]" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
+      <p className={`font-display font-black italic leading-none ${dim ? "text-[color:var(--color-grey-700)]" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
         {value}
       </p>
       {sub && (
-        <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-400)] mt-2">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-400)] mt-2">
           {sub}
         </p>
       )}
@@ -174,7 +174,7 @@ function StatusBadge({ status }: { status: string }) {
   };
   const s = map[status] ?? { color: "#64748b", label: status };
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: s.color }}>
+    <span className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-[0.14em]" style={{ color: s.color }}>
       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
       {s.label}
     </span>

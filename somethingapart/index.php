@@ -22,9 +22,8 @@
         href="https://media.swipepages.com/622f30e72ada4c0010fe3f23%2Ffavicon%2FEurodeco%20Isologo.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Space+Mono:wght@400;700&display=swap"
         rel="stylesheet">
-    <link href="https://fonts.cdnfonts.com/css/miroles" rel="stylesheet">
 
     <style>
         * {
@@ -40,7 +39,8 @@
             --bg-light: #f6f6f6;
             --bg-dark: #353434;
             --font-body: 'Poppins', sans-serif;
-            --font-heading: 'Miroles', serif;
+            --font-heading: 'DM Serif Display', serif;
+            --font-mono: 'Space Mono', monospace;
         }
 
         html {
@@ -61,7 +61,7 @@
         h5,
         h6 {
             font-family: var(--font-heading);
-            font-weight: 600;
+            font-weight: 400;
         }
 
         h3,
@@ -72,39 +72,6 @@
             font-family: var(--font-body);
         }
 
-        /* Artificial accents for Miroles font - properly positioned */
-        .accent {
-            position: relative;
-            display: inline-block;
-        }
-
-        .accent::before {
-            content: '\0301';
-            /* Combining acute accent */
-            position: absolute;
-            left: 50%;
-            top: 0.42em;
-            transform: translateX(-40%);
-            font-size: 1em;
-            line-height: 0;
-            pointer-events: none;
-        }
-
-        /* Adjust for different sizes */
-        h1 .accent::before {
-            top: 0.38em;
-            transform: translateX(-40%);
-        }
-
-        h2 .accent::before {
-            top: 0.4em;
-            transform: translateX(-40%);
-        }
-
-        h3 .accent::before {
-            top: 0.42em;
-            transform: translateX(-40%);
-        }
 
         /* Lightbox */
         .lightbox {
@@ -125,15 +92,22 @@
         }
 
         .lightbox-content {
-            max-width: 90%;
-            max-height: 90%;
+            max-width: min(88vw, 860px);
+            max-height: 88vh;
             position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .lightbox-content img {
-            width: 100%;
-            height: 100%;
+            max-width: 100%;
+            max-height: 88vh;
+            width: auto;
+            height: auto;
             object-fit: contain;
+            display: block;
+            border-radius: 4px;
         }
 
         .lightbox-close {
@@ -373,8 +347,14 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.65);
+            background: linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.72) 35%, rgba(0,0,0,0.28) 70%, rgba(0,0,0,0.0) 100%);
             z-index: 1;
+        }
+
+        @media (max-width: 768px) {
+            .hero::before {
+                background: linear-gradient(to bottom, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.70) 50%, rgba(0,0,0,0.25) 100%);
+            }
         }
 
         .hero .container {
@@ -385,29 +365,16 @@
             margin-left: 60px;
         }
 
-        .hero h1 {
-            font-size: 6rem;
-            margin-bottom: 2rem;
-            line-height: 1.1;
-            font-weight: 700;
-        }
-
-        .hero p {
-            font-size: 2rem;
-            margin-bottom: 3rem;
-            max-width: 700px;
-            line-height: 1.5;
-        }
-
         .hero-content {
-            max-width: 600px;
+            max-width: 640px;
         }
 
         .hero h1 {
-            font-size: 3.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
+            font-size: 5rem;
+            font-weight: 400;
+            margin-bottom: 0.5rem;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
         }
 
         .hero h5 {
@@ -500,10 +467,38 @@
             padding: 90px 0;
         }
 
-        .section-title {
-            font-size: 2.5rem;
-            font-weight: 700;
+        .section-eyebrow {
+            display: block;
             text-align: center;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--primary-orange);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: 3rem;
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: 1rem;
+            position: relative;
+            padding-bottom: 1.25rem;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 48px;
+            height: 2px;
+            background: var(--primary-orange);
+        }
+
+        .section-title-gap {
             margin-bottom: 3rem;
         }
 
@@ -567,15 +562,69 @@
         }
 
         .model-info h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1.5rem;
+            font-size: 3.2rem;
+            font-weight: 400;
+            margin-bottom: 1.25rem;
+            line-height: 1.1;
         }
 
         .model-info p {
             font-size: 1.125rem;
             margin-bottom: 2rem;
             color: #fff;
+        }
+
+        /* Modelos Alternativos */
+        .alt-models-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+        }
+
+        .alt-model-card {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        .alt-model-card img {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+
+        .alt-model-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .alt-model-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.75));
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 1024px) {
+            .alt-models-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .alt-models-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         /* About Section */
@@ -587,7 +636,8 @@
         }
 
         .about-content h2 {
-            font-size: 2.5rem;
+            font-size: 3rem;
+            font-weight: 400;
             margin-bottom: 1.5rem;
         }
 
@@ -638,11 +688,15 @@
         .feature {
             text-align: center;
             padding: 2rem;
+            border-top: 2px solid var(--primary-orange);
         }
 
         .feature h3 {
-            font-size: 1.5rem;
+            font-family: var(--font-body);
+            font-size: 1.05rem;
+            font-weight: 600;
             margin-bottom: 1rem;
+            letter-spacing: 0.2px;
         }
 
         .feature p {
@@ -674,9 +728,12 @@
         /* Contact Section */
         .contact-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 3rem;
             margin-top: 3rem;
+            max-width: 860px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .contact-form {
@@ -781,7 +838,7 @@
         /* Responsive */
         @media (max-width: 1024px) {
             .hero h1 {
-                font-size: 2.5rem;
+                font-size: 3.5rem;
             }
 
             .model {
@@ -833,7 +890,7 @@
             }
 
             .hero h1 {
-                font-size: 2.5rem;
+                font-size: 2.8rem;
             }
 
             .hero p {
@@ -934,7 +991,9 @@
     <section class="hero">
         <div class="container">
             <div class="hero-content">
-                <h1>F<span class="accent">a</span>brica de <nobr>Sof<span class="accent">a</span>s</nobr> Premium</h1>
+                <h1>Fábrica de <nobr>Sofás</nobr> Premium</h1>
+                <p style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 400; color: rgba(255,255,255,0.7); letter-spacing: 3px; margin-bottom: 1.5rem; text-transform: uppercase;">
+                    Especialistas en cuero vacuno</p>
                 <div class="hero-divider"></div>
                 <h5>Disfrutamos la magia de combinar los materiales de la más alta calidad con las mejores técnicas
                     artesanales para crear piezas únicas en belleza y confort.</h5>
@@ -946,6 +1005,8 @@
     <!-- Models Section -->
     <section id="modelos" class="section-dark">
         <div class="container">
+            <span class="section-eyebrow">Colección</span>
+            <h2 class="section-title" style="color: #fff; margin-bottom: 4rem;">Nuestros Modelos</h2>
             <!-- Chesterfield -->
             <div class="model">
                 <div class="model-info">
@@ -1045,6 +1106,28 @@
         </div>
     </section>
 
+    <!-- Modelos Alternativos Section -->
+    <section style="background: #1e1e1e; padding: 90px 0;">
+        <div class="container">
+            <h2 class="section-title" style="color: #fff; margin-bottom: 0.75rem;">Modelos Alternativos</h2>
+            <p style="text-align: center; color: rgba(255,255,255,0.6); font-size: 1rem; margin-bottom: 3rem; max-width: 600px; margin-left: auto; margin-right: auto;">Los modelos fuera de lo estándar rompen con el diseño tradicional y priorizan la creatividad. No buscan encajar, sino destacar con identidad propia y originalidad.</p>
+            <div class="alt-models-grid">
+                <div class="alt-model-card">
+                    <img src="img/alternativo-chesterfield.jpg" alt="Chesterfield Alternativo" onclick="openLightbox(alternativoImages[0], alternativoImages)">
+                </div>
+                <div class="alt-model-card">
+                    <img src="img/alternativo-constructor.jpg" alt="Constructor Alternativo" onclick="openLightbox(alternativoImages[1], alternativoImages)">
+                </div>
+                <div class="alt-model-card">
+                    <img src="img/alternativo-buckingham.jpg" alt="Buckingham Alternativo" onclick="openLightbox(alternativoImages[2], alternativoImages)">
+                </div>
+                <div class="alt-model-card">
+                    <img src="img/alternativo-lancaster.jpg" alt="Lancaster Alternativo" onclick="openLightbox(alternativoImages[3], alternativoImages)">
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- About Section -->
     <section id="somos">
         <div class="container">
@@ -1092,7 +1175,8 @@
     <!-- Features Section -->
     <section id="mas" class="section-light">
         <div class="container">
-            <h2 class="section-title" style="text-transform: uppercase; letter-spacing: 2px;">¿POR QUÉ ELEGIRNOS?</h2>
+            <span class="section-eyebrow">Nuestros Valores</span>
+            <h2 class="section-title section-title-gap">¿Por qué elegirnos?</h2>
             <div class="features-grid">
                 <div class="feature">
                     <h3>Fabricantes líderes en el rubro</h3>
@@ -1101,16 +1185,16 @@
                         realidad tu diseño.</p>
                 </div>
                 <div class="feature">
-                    <h3>Garant<span class="accent">i</span>a estructural de por vida</h3>
+                    <h3>Garantía estructural de por vida</h3>
                     <p>La cuidada selección de materiales y nuestra producción artesanal, personalizada y de alta
                         calidad, nos permiten ofrecer una <strong>garantía estructural de por vida</strong> en cada uno
                         de nuestros sofás.</p>
                 </div>
                 <div class="feature">
-                    <h3>Entrega sin cargo en todo el país*</h3>
+                    <h3>Envíos a todo el país*</h3>
                     <p style="font-size: 0.875rem;">(Excepto Tierra del Fuego, Antártida e Islas Malvinas)</p>
-                    <p>Nos ocupamos de que tu sofá llegue desde nuestra fábrica hasta tu living de forma segura, simple
-                        y sin costos adicionales.</p>
+                    <p>Nos ocupamos de que tu sofá llegue desde nuestra fábrica hasta tu living de forma segura, simple.
+                    </p>
                     <p>En la zona del AMBA realizamos entregas a domicilio.</p>
                     <p style="font-size: 0.875rem;">*En el interior del país, lo despachamos a la sucursal de Vía Cargo
                         más cercana al domicilio del cliente.</p>
@@ -1123,9 +1207,10 @@
     <!-- Textiles Section -->
     <section class="section-dark">
         <div class="container">
-            <h2 class="section-title" style="color: #fff;">Amplia Variedad de Textiles</h2>
+            <span class="section-eyebrow">Materiales</span>
+            <h2 class="section-title section-title-gap" style="color: #fff;">Amplia Variedad de Textiles</h2>
             <p style="text-align: center; color: #fff; font-size: 1.125rem; margin-bottom: 2rem;">Además de cuero vacuno
-                certificado, trabajamos con las telas de más alta calidad como Lino, Pana, Chenille, Talampaya, jean.
+                certificado, trabajamos con las telas de más alta calidad como Lino, Pana, Chenille, Talampaya.
             </p>
             <div class="textiles-grid">
                 <img src="https://eurodecofloridacom.swipepages.media/2022/9/622f73612ada4c0010fe4626/copia-de-dsc_0897.jpg"
@@ -1149,7 +1234,9 @@
     <!-- Download Catalog Section -->
     <section style="background: #000; padding: 60px 0;">
         <div class="container" style="text-align: center;">
-            <h2 style="color: #fff; font-size: 2.5rem; margin-bottom: 2rem;">Descargá Nuestro Catálogo</h2>
+            <span class="section-eyebrow" style="color: var(--primary-orange);">Recursos</span>
+            <h2 style="font-family: var(--font-heading); color: #fff; font-size: 3rem; font-weight: 400; margin-bottom: 0.75rem;">Descargá Nuestro Catálogo</h2>
+            <div style="width: 48px; height: 2px; background: var(--primary-orange); margin: 0 auto 2rem;"></div>
             <a href="https://thecrewserver.com/eurodeco/catalogo-eurodeco.pdf" class="btn"
                 style="background: #fff; color: #000; border-color: #fff; text-transform: uppercase;">descargar</a>
         </div>
@@ -1161,8 +1248,9 @@
         <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.6);"></div>
         <div class="container" style="position: relative; z-index: 2;">
             <div style="text-align: center; margin-bottom: 3rem;">
-                <h2 style="font-size: 2.5rem; margin-bottom: 1rem; color: #fff;">Cont<span class="accent">a</span>ctanos
-                </h2>
+                <span class="section-eyebrow">Hablemos</span>
+                <h2 style="font-family: var(--font-heading); font-size: 3rem; font-weight: 400; margin-bottom: 1rem; color: #fff; position: relative; display: inline-block; padding-bottom: 1.25rem;">Contáctanos</h2>
+                <div style="width: 48px; height: 2px; background: var(--primary-orange); margin: 0 auto 1rem;"></div>
                 <p style="color: #fff; font-size: 1.125rem;">Nuestros profesionales te acompañan en el proceso de elegir
                     el modelo que más se ajuste a tus deseos y necesidades, ofreciéndote la mejor financiación</p>
             </div>
@@ -1177,7 +1265,7 @@
                         </svg>
                     </div>
                     <h3 style="color: #fff; font-size: 2rem; margin-bottom: 1rem; font-family: var(--font-heading);">
-                        ¡Cont<span class="accent">a</span>ctanos por WhatsApp!</h3>
+                        ¡Contáctanos por WhatsApp!</h3>
                     <p style="color: #fff; margin-bottom: 2rem; font-size: 1.125rem;">Nuestros profesionales te
                         acompañan en el proceso de elegir el modelo que más se ajuste a tus deseos y necesidades</p>
                     <a href="https://wa.me/5491162088078" target="_blank" class="btn btn-primary"
@@ -1198,13 +1286,6 @@
                     <div class="divider" style="background: rgba(255,255,255,0.3);"></div>
                 </div>
 
-                <div class="showroom">
-                    <div class="divider" style="background: rgba(255,255,255,0.3);"></div>
-                    <h3 style="text-transform: uppercase;">SHOWROOM BAHÍA BLANCA</h3>
-                    <p><strong>+54 9 291 468 9243</strong></p>
-                    <p>Dorrego 532 Complejo Cronos Local 7 (CP 8001)</p>
-                    <div class="divider" style="background: rgba(255,255,255,0.3);"></div>
-                </div>
             </div>
         </div>
     </section>
@@ -1217,8 +1298,7 @@
                     alt="Eurodeco Furniture" style="width: 100%; height: auto; display: block;">
                 <div
                     style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; text-align: center;">
-                    <h2 style="font-size: 2.5rem; color: #fff; margin-bottom: 2rem; line-height: 1.3;">Creamos un toque
-                        vanguardista en los diseños clásicos que más nos gustan</h2>
+                    <h2 style="font-family: var(--font-heading); font-size: 3rem; font-weight: 400; color: #fff; margin-bottom: 2rem; line-height: 1.2;">Creamos un toque vanguardista en los diseños clásicos que más nos gustan</h2>
                     <div style="display: flex; gap: 2rem; align-items: center; justify-content: center;">
                         <a href="https://www.facebook.com/Eurodecoflorida/" class="social-icon"
                             style="color: #fff; transition: color 0.3s;">
@@ -1353,6 +1433,7 @@
 
             lightboxImages = imgArray;
             currentImageIndex = lightboxImages.indexOf(imgSrc);
+            if (currentImageIndex === -1) currentImageIndex = 0;
 
             lightboxImg.src = imgSrc;
             lightbox.classList.add('active');
@@ -1426,6 +1507,13 @@
             'https://eurodecofloridacom.swipepages.media/2022/4/622f73612ada4c0010fe4626/l2.png',
             'https://eurodecofloridacom.swipepages.media/2022/4/622f73612ada4c0010fe4626/l3.png',
             'https://eurodecofloridacom.swipepages.media/2022/4/622f73612ada4c0010fe4626/l5.png'
+        ];
+
+        const alternativoImages = [
+            'img/alternativo-chesterfield.jpg',
+            'img/alternativo-constructor.jpg',
+            'img/alternativo-buckingham.jpg',
+            'img/alternativo-lancaster.jpg'
         ];
 
         const textileImages = [
@@ -1526,6 +1614,7 @@
             align-items: flex-start;
             gap: 10px;
         }
+
         .wa-bubble {
             background: #fff;
             color: #1a1a1a;
@@ -1534,19 +1623,35 @@
             font-weight: 500;
             padding: 8px 14px;
             border-radius: 18px 18px 18px 4px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
             white-space: nowrap;
-            animation: wa-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both, wa-fade-out 0.4s ease 4s forwards;
+            animation: wa-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both, wa-fade-out 0.4s ease 4s forwards;
             transform-origin: bottom left;
         }
+
         @keyframes wa-pop {
-            from { opacity: 0; transform: scale(0.6) translateY(8px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
+            from {
+                opacity: 0;
+                transform: scale(0.6) translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
         }
+
         @keyframes wa-fade-out {
-            from { opacity: 1; }
-            to   { opacity: 0; pointer-events: none; }
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                pointer-events: none;
+            }
         }
+
         .wa-btn {
             display: flex;
             align-items: center;
@@ -1555,13 +1660,14 @@
             height: 56px;
             border-radius: 50%;
             background: #25D366;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
             transition: transform 0.2s, box-shadow 0.2s;
             text-decoration: none;
         }
+
         .wa-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 24px rgba(0,0,0,0.32);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.32);
         }
     </style>
     <div class="wa-float">
@@ -1569,7 +1675,8 @@
         <a href="https://wa.me/5491162088078?text=Hola%2C%20me%20gustar%C3%ADa%20recibir%20m%C3%A1s%20informaci%C3%B3n%20sobre%20los%20sof%C3%A1s%20de%20Eurodeco."
             target="_blank" rel="noopener" class="wa-btn" aria-label="Contactar por WhatsApp">
             <svg width="28" height="28" fill="#fff" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                <path
+                    d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
         </a>
     </div>

@@ -94,8 +94,8 @@ function ImageUpload({
 
   return (
     <div>
-      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1.5">{label}</label>
-      <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] mb-2">{hint}</p>
+      <label className="block font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1.5">{label}</label>
+      <p className="font-mono text-[12px] text-[color:var(--color-grey-600)] mb-2">{hint}</p>
       <div className="flex items-center gap-3">
         {value ? (
           <div className="relative w-16 h-10 overflow-hidden border border-[color:var(--color-grey-300)] flex-shrink-0">
@@ -124,7 +124,7 @@ function ImageUpload({
           {uploading ? "Subiendo..." : value ? "Cambiar" : "Subir imagen"}
         </button>
         {value && (
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] flex items-center gap-1">
+          <span className="font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] flex items-center gap-1">
             ✓ Subida
           </span>
         )}
@@ -236,7 +236,7 @@ const inputClass = "w-full px-4 py-3 bg-transparent border border-[color:var(--c
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">{label}</label>
+      <label className="block font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">{label}</label>
       {children}
     </div>
   );
@@ -338,14 +338,14 @@ export default function NewCollectionPage() {
       {/* ── Form ── */}
       <div className="max-w-xl w-full">
         <button onClick={() => router.back()}
-          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] mb-8 transition-colors">
+          className="flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] mb-8 transition-colors">
           ← Volver a eventos
         </button>
 
         <h1 className="font-display font-black italic leading-[0.95] tracking-[-0.03em] mb-2" style={{ fontSize: "clamp(32px,4vw,52px)" }}>
-          Nuevo<br /><span className="text-[color:var(--color-grey-500)]">evento.</span>
+          Nuevo<br /><span className="text-[color:var(--color-grey-700)]">evento.</span>
         </h1>
-        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mb-10">Completá los datos — la previsualización se actualiza en tiempo real.</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] mb-10">Completá los datos — la previsualización se actualiza en tiempo real.</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <Field label="Nombre del evento *">
@@ -378,7 +378,7 @@ export default function NewCollectionPage() {
 
           {/* ── Images ── */}
           <div className="border-t border-[color:var(--color-grey-300)] pt-6">
-            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-5">Imágenes del evento</p>
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">Imágenes del evento</p>
             <div className="flex flex-col gap-5">
               <ImageUpload
                 label="Banner (fondo de la tarjeta)"
@@ -412,13 +412,13 @@ export default function NewCollectionPage() {
             </div>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-ink)]">Publicar inmediatamente</p>
-              <p className="font-mono text-[10px] text-[color:var(--color-grey-500)] mt-0.5">El evento será visible en el sitio público</p>
+              <p className="font-mono text-[12px] text-[color:var(--color-grey-700)] mt-0.5">El evento será visible en el sitio público</p>
             </div>
           </label>
 
           {create.isError && (
             <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">Error</p>
+              <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">Error</p>
               <p className="font-mono text-[12px] text-[color:var(--color-ink)] mt-0.5">Revisá que el slug no esté en uso.</p>
             </div>
           )}
@@ -431,7 +431,7 @@ export default function NewCollectionPage() {
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </button>
             <button type="button" onClick={() => router.back()}
-              className="px-6 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)]">
+              className="px-6 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)]">
               Cancelar
             </button>
           </div>
@@ -440,7 +440,7 @@ export default function NewCollectionPage() {
 
       {/* ── Live preview ── */}
       <div className="hidden xl:block" style={{ position: "sticky", top: 0, alignSelf: "start" }}>
-        <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-4">Vista previa de la tarjeta</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-4">Vista previa de la tarjeta</p>
         <div className="max-w-xs mx-auto xl:mx-0">
           {/* Intercept the card's banner area with a draggable version */}
           {form.bannerUrl ? (
@@ -460,7 +460,7 @@ export default function NewCollectionPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={form.logoUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <svg className="w-10 h-10 text-[color:var(--color-grey-500)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="w-10 h-10 text-[color:var(--color-grey-700)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -473,11 +473,11 @@ export default function NewCollectionPage() {
                   {form.title || <span className="text-[color:var(--color-grey-600)]">Nombre del evento</span>}
                 </h3>
                 {form.eventDate && (
-                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] mb-1">
+                  <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] mb-1">
                     {new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(form.eventDate))}
                   </p>
                 )}
-                {form.description && <p className="font-mono text-[11px] text-[color:var(--color-grey-500)] mb-3 line-clamp-2">{form.description}</p>}
+                {form.description && <p className="font-mono text-[11px] text-[color:var(--color-grey-700)] mb-3 line-clamp-2">{form.description}</p>}
                 <div className="mt-auto">
                   <div className="block w-full py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-paper)] text-center"
                     style={{ background: "var(--color-ink)" }}>
@@ -485,13 +485,13 @@ export default function NewCollectionPage() {
                   </div>
                 </div>
               </div>
-              <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] text-center pb-2">Arrastrá el banner para reencuadrar</p>
+              <p className="font-mono text-[12px] text-[color:var(--color-grey-600)] text-center pb-2">Arrastrá el banner para reencuadrar</p>
             </div>
           ) : (
             <EventCard col={previewCol} preview />
           )}
         </div>
-        <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] text-center xl:text-left mt-3">Se actualiza mientras escribís</p>
+        <p className="font-mono text-[12px] text-[color:var(--color-grey-600)] text-center xl:text-left mt-3">Se actualiza mientras escribís</p>
       </div>
     </div>
   );

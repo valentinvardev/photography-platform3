@@ -10,7 +10,7 @@ export default async function CollectionsPage() {
       {/* Header */}
       <div className="flex items-end justify-between mb-10">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
             {collections.length} evento{collections.length !== 1 ? "s" : ""}
           </p>
           <h1
@@ -21,7 +21,7 @@ export default async function CollectionsPage() {
           </h1>
         </div>
         <div className="flex items-center gap-4">
-          <p className="hidden md:block font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
+          <p className="hidden md:block font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
             Arrastrá para reordenar
           </p>
           <Link
@@ -36,13 +36,13 @@ export default async function CollectionsPage() {
 
       {collections.length === 0 ? (
         <div className="border border-dashed border-[color:var(--color-grey-300)] py-24 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-3">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-3">
             Estado
           </p>
           <p className="font-display italic text-[44px] leading-tight text-[color:var(--color-ink)]">
             Sin eventos.
           </p>
-          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-8">
+          <p className="mt-3 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-8">
             Creá tu primer evento para empezar a vender fotos
           </p>
           <Link

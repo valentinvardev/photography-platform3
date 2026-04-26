@@ -78,7 +78,7 @@ export default async function EditCollectionPage({
       {/* Back */}
       <Link
         href="/admin/colecciones"
-        className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors mb-8"
+        className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors mb-8"
       >
         ← Eventos
       </Link>
@@ -102,7 +102,7 @@ export default async function EditCollectionPage({
               </div>
             )}
             <div>
-              <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1">
                 Evento
               </p>
               <h1 className="font-display font-black italic text-[28px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
@@ -110,11 +110,11 @@ export default async function EditCollectionPage({
               </h1>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {eventDate && (
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)]">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-grey-700)]">
                     {eventDate}
                   </span>
                 )}
-                <span className="font-mono text-[9px] text-[color:var(--color-grey-400)]">
+                <span className="font-mono text-[11px] text-[color:var(--color-grey-400)]">
                   /colecciones/{collection.slug}
                 </span>
               </div>
@@ -125,7 +125,7 @@ export default async function EditCollectionPage({
             <Link
               href={`/colecciones/${collection.slug}`}
               target="_blank"
-              className="px-3 py-1.5 border border-[color:var(--color-grey-300)] font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
+              className="px-3 py-1.5 border border-[color:var(--color-grey-300)] font-mono text-[12px] uppercase tracking-[0.14em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
             >
               ↗ Ver público
             </Link>
@@ -152,7 +152,7 @@ export default async function EditCollectionPage({
               <p className="font-display font-black italic text-[32px] leading-none" style={{ color: c.color ?? "var(--color-ink)" }}>
                 {c.value}
               </p>
-              <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mt-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] mt-1">
                 {c.label}
               </p>
             </div>
@@ -169,13 +169,13 @@ export default async function EditCollectionPage({
       {/* Three-column layout: upload / pricing / category */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-px border border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-300)] mb-px">
         <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
             Subir fotos
           </p>
           <PhotoUploader collectionId={id} />
         </div>
         <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
             Precios
           </p>
           <PricingPanel
@@ -186,7 +186,7 @@ export default async function EditCollectionPage({
           />
         </div>
         <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
             Categoría
           </p>
           <CategoryAssign
@@ -200,11 +200,11 @@ export default async function EditCollectionPage({
       <div className="grid grid-cols-1 gap-px border border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-300)]">
         <div className="bg-[color:var(--color-paper)] p-6">
           <div className="flex items-center gap-3 mb-5">
-            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
               Galería
             </p>
             {unidentifiedCount > 0 && (
-              <span className="inline-flex items-center gap-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-[#92400e]">
+              <span className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-[#92400e]">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#92400e]" />
                 {unidentifiedCount} sin dorsal
               </span>

@@ -5,7 +5,7 @@ export default function ConfigPage() {
   return (
     <div>
       <div className="mb-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
           Ajustes globales
         </p>
         <h1
@@ -18,7 +18,7 @@ export default function ConfigPage() {
 
       <div className="max-w-xl border border-[color:var(--color-grey-300)] divide-y divide-[color:var(--color-grey-300)]">
         <section className="p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1">
             MercadoPago
           </p>
           <p className="font-sans text-[13px] leading-[1.6] text-[color:var(--color-grey-700)] mb-5">
@@ -28,7 +28,7 @@ export default function ConfigPage() {
         </section>
 
         <section className="p-6">
-          <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1">
+          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1">
             Marca de agua
           </p>
           <p className="font-sans text-[13px] leading-[1.6] text-[color:var(--color-grey-700)] mb-5">
