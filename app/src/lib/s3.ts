@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -78,6 +79,16 @@ export async function putS3Object(
     Body: bytes,
     ContentType: contentType,
   }));
+}
+
+/** Verifica si un objeto existe en S3 sin descargarlo. */
+export async function s3ObjectExists(key: string): Promise<boolean> {
+  try {
+    await s3.send(new HeadObjectCommand({ Bucket: S3_BUCKET, Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Elimina uno o más objetos de S3. */

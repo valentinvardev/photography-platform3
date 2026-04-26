@@ -115,12 +115,16 @@ export async function runOcr(photoId: string): Promise<{ bib: string | null }> {
 // ── Watermark ─────────────────────────────────────────────────────────────────
 
 async function buildWatermarkComposite(
-  client: NonNullable<ReturnType<typeof getAdminClient>>,
   imageWidth: number,
   imageHeight: number,
 ): Promise<{ input: Buffer; tile: boolean; blend: "over" }> {
-  const { data: wmData, error: wmError } = await client.storage.from("photos").download(WATERMARK_KEY);
-  const wmPng = (!wmError && wmData) ? Buffer.from(await wmData.arrayBuffer()) : null;
+  let wmPng: Buffer | null = null;
+  try {
+    const bytes = await getS3ObjectBytes(s3Key(WATERMARK_KEY));
+    wmPng = Buffer.from(bytes);
+  } catch {
+    // no watermark uploaded yet
+  }
 
   if (wmPng) {
     const meta = await sharp(wmPng).metadata();
@@ -165,11 +169,8 @@ export async function runWatermark(photoId: string): Promise<{ previewKey: strin
   const h = meta.height ?? 800;
 
   try {
-    // Watermark is always read from Supabase (WATERMARK_KEY) for now
     const supabase = getAdminClient();
-    const composite = supabase
-      ? await buildWatermarkComposite(supabase, w, h)
-      : await buildFallbackComposite();
+    const composite = await buildWatermarkComposite(w, h);
     const watermarked = await sharp(buffer).composite([composite]).jpeg({ quality: 78 }).toBuffer();
 
     // Delete previous preview from the correct backend

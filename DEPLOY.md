@@ -31,13 +31,11 @@ postgresql://usuario:password@localhost:5432/cliente2
 
 ---
 
-## Paso 2 — Crear proyecto en Supabase
+## Paso 2 — Supabase (ya no requerido)
 
-1. Ir a [supabase.com](https://supabase.com) → New Project
-2. Guardar: `URL`, `anon key`, `service_role key`
-3. Ir a Storage → New Bucket → nombre: `photos`, privado (no public)
+Supabase no es necesario para nuevos deployments. La marca de agua ahora se guarda en S3 bajo `{AWS_S3_PREFIX}/watermarks/active.png`.
 
-El bucket `photos` de Supabase se usa exclusivamente para la imagen de marca de agua (`watermarks/active.png`). Los uploads de fotos van a S3.
+Omitir las variables `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` del `.env`.
 
 ---
 
@@ -127,9 +125,10 @@ AWS_REGION=us-east-2
 AWS_S3_BUCKET=         # mismo bucket
 AWS_S3_PREFIX=cliente2 # IMPORTANTE: prefijo único para este cliente
 
-NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
+# Supabase ya no es necesario — omitir estas variables
+# NEXT_PUBLIC_SUPABASE_URL=
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# SUPABASE_SERVICE_ROLE_KEY=
 
 MERCADOPAGO_ACCESS_TOKEN=
 MERCADOPAGO_WEBHOOK_SECRET=  # string random, usarlo también al configurar el webhook en MP

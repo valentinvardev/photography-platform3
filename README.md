@@ -13,7 +13,7 @@ Plataforma de venta de fotos y videos de eventos deportivos. Los fotógrafos sub
 | Base de datos | PostgreSQL + Prisma v6 |
 | Auth | NextAuth.js (CredentialsProvider — email/password) |
 | Storage principal | AWS S3 |
-| Storage auxiliar | Supabase Storage (marca de agua, índice de caras) |
+| Storage auxiliar | Supabase Storage (legacy — ya no requerido para nuevos deployments) |
 | Pagos | MercadoPago |
 | Email | Resend |
 | Detección de caras | AWS Rekognition |
@@ -80,10 +80,8 @@ Compra de un conjunto de fotos.
 
 `AWS_S3_PREFIX` es opcional. Si está seteado (ej: `ivana`), todos los archivos van dentro de esa carpeta. Permite compartir el mismo bucket entre múltiples deployments.
 
-### Supabase Storage (bucket: `photos`)
-```
-watermarks/active.png   ← marca de agua PNG (no usa prefix, es por deployment de Supabase)
-```
+### Supabase Storage (legacy — no requerido para nuevos deployments)
+Clientes anteriores pueden tener fotos en Supabase; el código mantiene compatibilidad pero no escribe nuevo contenido ahí.
 
 ---
 
@@ -106,10 +104,10 @@ AWS_REGION=                         # ej: us-east-2
 AWS_S3_BUCKET=                      # nombre del bucket
 AWS_S3_PREFIX=                      # ej: ivana (para aislar en bucket compartido)
 
-# Supabase (para marca de agua y búsqueda por cara)
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+# Supabase (opcional — solo para compatibilidad con fotos legacy)
+# NEXT_PUBLIC_SUPABASE_URL=
+# NEXT_PUBLIC_SUPABASE_ANON_KEY=
+# SUPABASE_SERVICE_ROLE_KEY=
 
 # MercadoPago
 MERCADOPAGO_ACCESS_TOKEN=
