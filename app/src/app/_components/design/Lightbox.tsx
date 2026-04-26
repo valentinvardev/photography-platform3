@@ -116,7 +116,7 @@ function VideoPlayer({ url, mimeType, filename }: { url: string; mimeType?: stri
         {/* Progress */}
         <div className="relative h-1 bg-[color:var(--color-paper)]/20 w-full group/bar cursor-pointer">
           <div
-            className="absolute inset-y-0 left-0 bg-[color:var(--color-paper)]"
+            className="absolute inset-y-0 left-0 bg-[#FFE600]"
             style={{ width: `${pct}%` }}
           />
           <input
@@ -215,19 +215,22 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
           transition={{ duration: 0.3 }}
           onClick={onClose}
           data-cursor="dark"
-          className="fixed inset-0 z-[120] bg-[color:var(--color-ink)]/97 flex flex-col cursor-none"
+          className="fixed inset-0 z-[120] bg-[#0D0D0D] flex flex-col cursor-none"
         >
+          {/* Yellow left accent */}
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE600] z-10" />
+
           {/* top bar */}
           <div
-            className="flex items-center justify-between px-6 md:px-10 h-16 shrink-0"
+            className="flex items-center justify-between pl-8 pr-6 md:pl-14 md:pr-10 h-16 shrink-0 border-b border-white/8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-5">
-              <span className="font-display italic text-[18px] text-[color:var(--color-paper)]">
+              <span className="font-display font-black italic text-[18px] text-[#FFE600]">
                 SINCHI®
               </span>
               {typeof index === "number" && typeof total === "number" && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/60">
+                <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/40">
                   {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
                 </span>
               )}
@@ -236,7 +239,7 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
               {toolbar}
               <button
                 onClick={onClose}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/80 hover:text-[color:var(--color-paper)] transition-colors"
+                className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 hover:text-white transition-colors"
               >
                 Cerrar [esc]
               </button>
@@ -268,8 +271,8 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
                 aria-label="Anterior"
                 className="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 group flex items-center gap-2"
               >
-                <span className="w-10 h-10 border border-[color:var(--color-paper)]/40 group-hover:border-[color:var(--color-paper)] flex items-center justify-center transition-colors text-[color:var(--color-paper)]">←</span>
-                <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/0 group-hover:text-[color:var(--color-paper)]/80 transition-colors">prev</span>
+                <span className="w-10 h-10 border border-white/20 group-hover:border-[#FFE600] group-hover:text-[#FFE600] flex items-center justify-center transition-colors text-white/70">←</span>
+                <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.22em] text-white/0 group-hover:text-[#FFE600]/80 transition-colors">prev</span>
               </button>
             )}
             {onNext && (
@@ -278,8 +281,8 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
                 aria-label="Siguiente"
                 className="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 group flex items-center gap-2"
               >
-                <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/0 group-hover:text-[color:var(--color-paper)]/80 transition-colors">next</span>
-                <span className="w-10 h-10 border border-[color:var(--color-paper)]/40 group-hover:border-[color:var(--color-paper)] flex items-center justify-center transition-colors text-[color:var(--color-paper)]">→</span>
+                <span className="hidden md:inline font-mono text-[10px] uppercase tracking-[0.22em] text-white/0 group-hover:text-[#FFE600]/80 transition-colors">next</span>
+                <span className="w-10 h-10 border border-white/20 group-hover:border-[#FFE600] group-hover:text-[#FFE600] flex items-center justify-center transition-colors text-white/70">→</span>
               </button>
             )}
           </div>

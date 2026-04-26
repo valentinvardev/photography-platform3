@@ -20,7 +20,7 @@ export function CollectionActions({
     onSuccess: () => router.refresh(),
   });
   const del = api.collection.delete.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: () => router.push("/admin/colecciones"),
   });
 
   return (
