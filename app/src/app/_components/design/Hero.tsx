@@ -50,7 +50,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       </motion.div>
 
       {/* Main content — bottom-left anchored */}
-      <div className="relative z-10 h-full flex flex-col justify-end pb-10 md:pb-24 px-8 md:px-14">
+      <div className="relative z-10 h-full flex flex-col justify-end pb-28 md:pb-24 px-8 md:px-14">
 
         {/* Label strip */}
         <motion.div
@@ -111,8 +111,8 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
             </a>
           </div>
 
-          {/* Stats — pushed right on desktop */}
-          <div className="flex items-end gap-10 md:ml-auto">
+          {/* Stats — pushed right on desktop, hidden on mobile */}
+          <div className="hidden md:flex items-end gap-10 md:ml-auto">
             <div className="text-left">
               <span className="block font-display font-extrabold italic leading-none text-white"
                     style={{ fontSize: "clamp(40px, 5vw, 64px)" }}>
@@ -139,7 +139,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5, ease, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-3"
       >
         <span className="font-sans font-bold uppercase tracking-[0.22em] text-[9px] text-white/30">
           Deslizá
