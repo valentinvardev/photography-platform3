@@ -50,7 +50,7 @@ function DatePicker({ value, onChange }: { value: string; onChange: (v: string) 
   };
   const handleYear = (y: string) => { setYear(y); emit(day, month, y); };
 
-  const sel = "flex-1 appearance-none bg-white border border-gray-200 rounded-xl px-3 py-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all cursor-pointer";
+  const sel = "flex-1 appearance-none bg-[color:var(--color-paper)] border border-[color:var(--color-grey-300)] px-3 py-3 font-mono text-[13px] text-[color:var(--color-ink)] focus:outline-none focus:border-[color:var(--color-ink)] transition-colors cursor-pointer";
   return (
     <div className="flex gap-2">
       <select className={sel} value={day} onChange={(e) => handleDay(e.target.value)}>
@@ -94,17 +94,17 @@ function ImageUpload({
 
   return (
     <div>
-      <label className="block text-gray-600 text-sm font-medium mb-1.5">{label}</label>
-      <p className="text-xs text-gray-400 mb-2">{hint}</p>
+      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-1.5">{label}</label>
+      <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] mb-2">{hint}</p>
       <div className="flex items-center gap-3">
         {value ? (
-          <div className="relative w-16 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100">
+          <div className="relative w-16 h-10 overflow-hidden border border-[color:var(--color-grey-300)] flex-shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={value} alt="" className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => onChange("")}
-              className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center text-xs leading-none"
+              className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 text-white flex items-center justify-center text-xs leading-none"
             >×</button>
           </div>
         ) : null}
@@ -112,10 +112,10 @@ function ImageUpload({
           type="button"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-all disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 border border-[color:var(--color-grey-300)] font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] hover:border-[color:var(--color-ink)] transition-colors disabled:opacity-50"
         >
           {uploading ? (
-            <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-blue-500 animate-spin" />
+            <div className="w-4 h-4 rounded-full border-2 border-[color:var(--color-grey-400)] border-t-[color:var(--color-brand)] animate-spin" />
           ) : (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -124,11 +124,8 @@ function ImageUpload({
           {uploading ? "Subiendo..." : value ? "Cambiar" : "Subir imagen"}
         </button>
         {value && (
-          <span className="text-xs text-green-600 flex items-center gap-1">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Subida
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] flex items-center gap-1">
+            ✓ Subida
           </span>
         )}
       </div>
@@ -201,8 +198,8 @@ function BannerDragger({
   return (
     <div
       ref={containerRef}
-      className="relative h-44 rounded-t-2xl overflow-hidden cursor-ns-resize select-none"
-      style={{ background: "#e2e8f0" }}
+      className="relative h-44 overflow-hidden cursor-ns-resize select-none"
+      style={{ background: "var(--color-grey-200)" }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
@@ -234,12 +231,12 @@ function BannerDragger({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
-const inputClass = "w-full rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all border border-gray-200 bg-white";
+const inputClass = "w-full px-4 py-3 bg-transparent border border-[color:var(--color-grey-300)] text-[color:var(--color-ink)] placeholder-[color:var(--color-grey-600)] font-mono text-[13px] focus:outline-none focus:border-[color:var(--color-ink)] transition-colors";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-gray-600 text-sm font-medium mb-1.5">{label}</label>
+      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">{label}</label>
       {children}
     </div>
   );
@@ -341,15 +338,14 @@ export default function NewCollectionPage() {
       {/* ── Form ── */}
       <div className="max-w-xl w-full">
         <button onClick={() => router.back()}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 mb-6 transition-colors">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver a eventos
+          className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] mb-8 transition-colors">
+          ← Volver a eventos
         </button>
 
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Crear evento</h1>
-        <p className="text-gray-500 text-sm mb-8">Completá los datos — la previsualización se actualiza en tiempo real.</p>
+        <h1 className="font-display font-black italic leading-[0.95] tracking-[-0.03em] mb-2" style={{ fontSize: "clamp(32px,4vw,52px)" }}>
+          Nuevo<br /><span className="text-[color:var(--color-grey-500)]">evento.</span>
+        </h1>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mb-10">Completá los datos — la previsualización se actualiza en tiempo real.</p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <Field label="Nombre del evento *">
@@ -381,8 +377,8 @@ export default function NewCollectionPage() {
           </Field>
 
           {/* ── Images ── */}
-          <div className="border-t border-gray-100 pt-5">
-            <p className="text-gray-700 text-sm font-semibold mb-4">Imágenes del evento</p>
+          <div className="border-t border-[color:var(--color-grey-300)] pt-6">
+            <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-5">Imágenes del evento</p>
             <div className="flex flex-col gap-5">
               <ImageUpload
                 label="Banner (fondo de la tarjeta)"
@@ -403,38 +399,39 @@ export default function NewCollectionPage() {
             </div>
           </div>
 
-          <label className="flex items-center gap-3 cursor-pointer p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-blue-50 transition-colors">
-            <div className="relative">
+          <label className="flex items-center gap-4 cursor-pointer p-4 border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)] transition-colors">
+            <div className="relative shrink-0">
               <input type="checkbox" checked={form.isPublished}
                 onChange={(e) => setForm((f) => ({ ...f, isPublished: e.target.checked }))}
                 className="sr-only" />
-              <div className="w-10 h-5 rounded-full transition-colors"
-                style={{ background: form.isPublished ? "#2563eb" : "#e2e8f0" }}>
-                <div className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform"
-                  style={{ left: form.isPublished ? "22px" : "2px" }} />
+              <div className="w-10 h-5 transition-colors"
+                style={{ background: form.isPublished ? "var(--color-brand)" : "var(--color-grey-300)" }}>
+                <div className="absolute top-0.5 w-4 h-4 shadow transition-all"
+                  style={{ left: form.isPublished ? "22px" : "2px", background: form.isPublished ? "var(--color-ink)" : "var(--color-paper)" }} />
               </div>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-700">Publicar inmediatamente</p>
-              <p className="text-xs text-gray-400">El evento será visible en el sitio público</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-ink)]">Publicar inmediatamente</p>
+              <p className="font-mono text-[10px] text-[color:var(--color-grey-500)] mt-0.5">El evento será visible en el sitio público</p>
             </div>
           </label>
 
           {create.isError && (
-            <div className="px-4 py-3 rounded-xl bg-red-50 border border-red-100">
-              <p className="text-red-600 text-sm">Error al crear. Revisá que el slug no esté en uso.</p>
+            <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-2">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">Error</p>
+              <p className="font-mono text-[12px] text-[color:var(--color-ink)] mt-0.5">Revisá que el slug no esté en uso.</p>
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-4 pt-2 flex-wrap">
             <button type="submit"
               disabled={create.isPending || !form.title || !form.slug}
-              className="disabled:opacity-50 font-semibold text-white text-sm px-6 py-3 rounded-xl transition-all hover:opacity-90 shadow-sm"
-              style={{ background: "linear-gradient(135deg, #1a3a6b, #2563eb)" }}>
-              {create.isPending ? "Creando..." : "Crear evento →"}
+              className="group inline-flex items-center justify-between gap-8 border border-[color:var(--color-ink)] px-6 py-4 hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)] transition-colors disabled:opacity-40 disabled:cursor-wait font-mono text-[11px] uppercase tracking-[0.22em]">
+              <span>{create.isPending ? "Creando…" : "Crear evento"}</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </button>
             <button type="button" onClick={() => router.back()}
-              className="text-gray-500 hover:text-gray-800 px-6 py-3 rounded-xl transition-colors border border-gray-200 hover:border-gray-300 text-sm">
+              className="px-6 py-4 font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)]">
               Cancelar
             </button>
           </div>
@@ -443,11 +440,11 @@ export default function NewCollectionPage() {
 
       {/* ── Live preview ── */}
       <div className="hidden xl:block" style={{ position: "sticky", top: 0, alignSelf: "start" }}>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Vista previa de la tarjeta</p>
+        <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-4">Vista previa de la tarjeta</p>
         <div className="max-w-xs mx-auto xl:mx-0">
           {/* Intercept the card's banner area with a draggable version */}
           {form.bannerUrl ? (
-            <div className="bg-white rounded-2xl border border-gray-200 overflow-visible flex flex-col">
+            <div className="bg-[color:var(--color-paper)] border border-[color:var(--color-grey-300)] overflow-visible flex flex-col">
               {/* Draggable banner */}
               <div className="relative">
                 <BannerDragger
@@ -456,14 +453,14 @@ export default function NewCollectionPage() {
                   onChange={(y) => setForm((f) => ({ ...f, bannerFocalY: y }))}
                 />
                 <div
-                  className="absolute -bottom-14 left-1/2 -translate-x-1/2 z-10 w-28 h-28 rounded-full border-4 border-white shadow-xl overflow-hidden flex items-center justify-center"
-                  style={{ background: form.logoUrl ? "#fff" : "#0057A8" }}
+                  className="absolute -bottom-14 left-1/2 -translate-x-1/2 z-10 w-28 h-28 rounded-full border-4 border-[color:var(--color-paper)] shadow-xl overflow-hidden flex items-center justify-center"
+                  style={{ background: form.logoUrl ? "var(--color-grey-200)" : "var(--color-grey-800)" }}
                 >
                   {form.logoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={form.logoUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <svg className="w-10 h-10 text-[color:var(--color-grey-500)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -472,29 +469,29 @@ export default function NewCollectionPage() {
               </div>
               {/* Rest of card */}
               <div className="pt-20 pb-5 px-5 flex flex-col flex-1 text-center">
-                <h3 className="font-display font-700 uppercase text-gray-900 text-xl leading-tight mb-1">
-                  {form.title || <span className="text-gray-300">Nombre del evento</span>}
+                <h3 className="font-display font-black italic uppercase text-[color:var(--color-ink)] text-xl leading-tight mb-1">
+                  {form.title || <span className="text-[color:var(--color-grey-600)]">Nombre del evento</span>}
                 </h3>
                 {form.eventDate && (
-                  <p className="text-xs font-semibold mb-1" style={{ color: "#0057A8" }}>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--color-brand)] mb-1">
                     {new Intl.DateTimeFormat("es-AR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(form.eventDate))}
                   </p>
                 )}
-                {form.description && <p className="text-sm text-gray-500 mb-3 line-clamp-2">{form.description}</p>}
+                {form.description && <p className="font-mono text-[11px] text-[color:var(--color-grey-500)] mb-3 line-clamp-2">{form.description}</p>}
                 <div className="mt-auto">
-                  <div className="block w-full py-3 rounded-xl font-display font-700 uppercase tracking-wider text-white text-sm text-center"
-                    style={{ background: "linear-gradient(135deg, #0057A8, #003D7A)" }}>
+                  <div className="block w-full py-3 font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-paper)] text-center"
+                    style={{ background: "var(--color-ink)" }}>
                     Explorar fotos →
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 text-center pb-2">Arrastrá el banner para reencuadrar</p>
+              <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] text-center pb-2">Arrastrá el banner para reencuadrar</p>
             </div>
           ) : (
             <EventCard col={previewCol} preview />
           )}
         </div>
-        <p className="text-xs text-gray-300 text-center xl:text-left mt-3">Se actualiza mientras escribís</p>
+        <p className="font-mono text-[10px] text-[color:var(--color-grey-600)] text-center xl:text-left mt-3">Se actualiza mientras escribís</p>
       </div>
     </div>
   );
