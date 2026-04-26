@@ -425,7 +425,7 @@ export default function NewCollectionPage() {
           {create.isError && (
             <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-2">
               <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">Error</p>
-              <p className="font-mono text-[12px] text-[color:var(--color-ink)] mt-0.5">Revisá que el slug no esté en uso.</p>
+              <p className="font-mono text-[12px] text-[color:var(--color-ink)] mt-0.5">{create.error?.message ?? "Revisá que el slug no esté en uso."}</p>
             </div>
           )}
 

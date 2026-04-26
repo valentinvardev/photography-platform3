@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "../../../../generated/prisma";
-import { createSignedUrl } from "~/lib/supabase/admin";
+import { createS3DownloadUrl, s3Key } from "~/lib/s3";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -10,7 +10,7 @@ import {
 async function resolveUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("http")) return url;
-  return createSignedUrl(url, 7200);
+  return createS3DownloadUrl(s3Key(url), 7200);
 }
 
 const resolveCover = resolveUrl;
