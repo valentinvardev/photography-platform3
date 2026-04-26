@@ -487,7 +487,7 @@ export function FolderBrowser({
   const GRID = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10";
 
   return (
-    <section id="search" className="max-w-[1600px] mx-auto px-6 md:px-10 py-16 pb-32">
+    <section id="search" className="max-w-[1600px] mx-auto px-6 md:px-10 py-16 pb-32 overflow-x-hidden">
       {/* ── Search panel ───────────────────────────────────── */}
       {/* ── Search panel ───────────────────────────────────── */}
       <div className="mb-20">
@@ -501,7 +501,7 @@ export function FolderBrowser({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
           {/* Dorsal input */}
-          <div>
+          <div className="min-w-0 overflow-hidden">
             <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-[#FFE000]/70 mb-4">
               Número de dorsal
             </label>

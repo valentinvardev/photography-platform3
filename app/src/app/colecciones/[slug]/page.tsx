@@ -32,7 +32,7 @@ export default async function CollectionPage({
 
   return (
     <CartProvider>
-      <main data-cursor="light" className="relative bg-[color:var(--color-paper)] text-[color:var(--color-ink)] min-h-screen">
+      <main data-cursor="light" className="relative bg-[color:var(--color-paper)] text-[color:var(--color-ink)] min-h-screen overflow-x-hidden">
         {/* Compact, page-specific nav */}
         <nav className="sticky top-0 z-50 bg-[#1A1A1A]/90 backdrop-blur-xl border-b border-[color:var(--color-grey-300)]">
           <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
