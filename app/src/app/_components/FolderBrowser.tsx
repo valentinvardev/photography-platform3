@@ -502,17 +502,17 @@ export function FolderBrowser({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
           {/* Dorsal input */}
           <div>
-            <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-4">
+            <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-[#FFE000]/70 mb-4">
               Número de dorsal
             </label>
-            <div className="flex items-end gap-3 border-b-2 border-white/20 pb-3 focus-within:border-[#FFE000] transition-colors duration-200">
+            <div className="flex items-end gap-3 border-b-2 border-[#FFE000]/35 pb-3 focus-within:border-[#FFE000] transition-colors duration-200">
               <input
                 type="text"
                 inputMode="numeric"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="1042"
-                className="flex-1 bg-transparent border-0 outline-none font-display font-extrabold italic text-[56px] md:text-[80px] leading-none tracking-[-0.02em] text-white placeholder:text-white/15"
+                className="flex-1 bg-transparent border-0 outline-none font-display font-extrabold italic text-[56px] md:text-[80px] leading-none tracking-[-0.02em] text-white placeholder:text-[#FFE000]/20"
               />
               {search && (
                 <button
