@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import { api } from "~/trpc/react";
-import type { DiscountTier } from "~/lib/pricing";
+import type { DiscountCode } from "~/lib/pricing";
+import { parseDiscountCodes } from "~/lib/pricing";
 
-function TierRow({
-  tier,
+function CodeRow({
+  code,
   index,
   onChange,
   onRemove,
 }: {
-  tier: DiscountTier;
+  code: DiscountCode;
   index: number;
-  onChange: (t: DiscountTier) => void;
+  onChange: (c: DiscountCode) => void;
   onRemove: () => void;
 }) {
   return (
@@ -22,26 +23,27 @@ function TierRow({
       </span>
       <div className="flex-1 grid grid-cols-2 gap-2">
         <div>
-          <label className="block font-mono text-[8px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mb-1">
-            Desde (fotos)
+          <label className="block font-mono text-[8px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] mb-1">
+            Código
           </label>
           <input
-            type="number"
-            min={1}
-            value={tier.minQty}
-            onChange={(e) => onChange({ ...tier, minQty: Math.max(1, parseInt(e.target.value) || 1) })}
-            className="w-full border border-[color:var(--color-grey-300)] bg-[color:var(--color-paper)] px-3 py-1.5 font-mono text-[11px] text-[color:var(--color-ink)] focus:border-[color:var(--color-ink)] outline-none"
+            type="text"
+            value={code.code}
+            onChange={(e) => onChange({ ...code, code: e.target.value.toUpperCase() })}
+            className="w-full border border-[color:var(--color-grey-300)] bg-[color:var(--color-paper)] px-3 py-1.5 font-mono text-[11px] text-[color:var(--color-ink)] focus:border-[color:var(--color-ink)] outline-none uppercase"
+            placeholder="PROMO10"
           />
         </div>
         <div>
-          <label className="block font-mono text-[8px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mb-1">
-            Precio c/u (ARS)
+          <label className="block font-mono text-[8px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] mb-1">
+            Descuento (%)
           </label>
           <input
             type="number"
             min={0}
-            value={tier.priceEach}
-            onChange={(e) => onChange({ ...tier, priceEach: Math.max(0, parseFloat(e.target.value) || 0) })}
+            max={100}
+            value={code.percent}
+            onChange={(e) => onChange({ ...code, percent: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
             className="w-full border border-[color:var(--color-grey-300)] bg-[color:var(--color-paper)] px-3 py-1.5 font-mono text-[11px] text-[color:var(--color-ink)] focus:border-[color:var(--color-ink)] outline-none"
           />
         </div>
@@ -60,17 +62,17 @@ export function PricingPanel({
   collectionId,
   initialPricePerBib,
   initialPackPrice,
-  initialTiers,
+  initialDiscountCodes,
 }: {
   collectionId: string;
   initialPricePerBib: number;
   initialPackPrice: number | null;
-  initialTiers: DiscountTier[];
+  initialDiscountCodes: DiscountCode[];
 }) {
   const [pricePerBib, setPricePerBib] = useState(initialPricePerBib);
   const [packEnabled, setPackEnabled] = useState(initialPackPrice !== null);
   const [packPrice, setPackPrice] = useState(initialPackPrice ?? 0);
-  const [tiers, setTiers] = useState<DiscountTier[]>(initialTiers);
+  const [codes, setCodes] = useState<DiscountCode[]>(initialDiscountCodes);
   const [saved, setSaved] = useState(false);
 
   const update = api.collection.update.useMutation({
@@ -85,23 +87,19 @@ export function PricingPanel({
       id: collectionId,
       pricePerBib,
       packPrice: packEnabled ? packPrice : null,
-      discountTiers: tiers.length > 0 ? tiers : null,
+      discountCodes: codes.length > 0 ? codes : null,
     });
   };
 
-  const addTier = () => {
-    const last = tiers[tiers.length - 1];
-    setTiers((prev) => [
-      ...prev,
-      { minQty: last ? last.minQty + 5 : 5, priceEach: last ? Math.max(0, last.priceEach - 500) : 0 },
-    ]);
+  const addCode = () => {
+    setCodes((prev) => [...prev, { code: "", percent: 10 }]);
   };
 
   return (
     <div className="flex flex-col gap-6">
       {/* Base price */}
       <div>
-        <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+        <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
           Precio base por foto (ARS)
         </label>
         <input
@@ -115,41 +113,41 @@ export function PricingPanel({
 
       <div className="h-px bg-[color:var(--color-grey-300)]" />
 
-      {/* Discount tiers */}
+      {/* Discount codes */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
-            Descuentos progresivos
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+            Códigos de descuento
           </p>
           <button
-            onClick={addTier}
+            onClick={addCode}
             className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-ink)] border border-[color:var(--color-grey-300)] px-3 py-1.5 hover:border-[color:var(--color-ink)] transition-colors"
           >
-            + Nivel
+            + Código
           </button>
         </div>
-        {tiers.length === 0 ? (
+        {codes.length === 0 ? (
           <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[color:var(--color-grey-400)]">
-            Sin descuentos configurados
+            Sin códigos configurados
           </p>
         ) : (
           <div className="flex flex-col gap-3">
-            {tiers.map((t, i) => (
-              <TierRow
+            {codes.map((c, i) => (
+              <CodeRow
                 key={i}
-                tier={t}
+                code={c}
                 index={i}
                 onChange={(updated) =>
-                  setTiers((prev) => prev.map((x, xi) => (xi === i ? updated : x)))
+                  setCodes((prev) => prev.map((x, xi) => (xi === i ? updated : x)))
                 }
-                onRemove={() => setTiers((prev) => prev.filter((_, xi) => xi !== i))}
+                onRemove={() => setCodes((prev) => prev.filter((_, xi) => xi !== i))}
               />
             ))}
           </div>
         )}
-        {tiers.length > 0 && (
+        {codes.length > 0 && (
           <p className="mt-3 font-mono text-[8px] uppercase tracking-[0.14em] text-[color:var(--color-grey-400)]">
-            El precio por foto aplica cuando el corredor tiene ≥ N fotos en su búsqueda
+            El comprador ingresa el código al momento de pagar para aplicar el descuento
           </p>
         )}
       </div>
@@ -159,7 +157,7 @@ export function PricingPanel({
       {/* Pack price */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+          <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
             Precio pack (todas las fotos)
           </p>
           <button
@@ -204,3 +202,5 @@ export function PricingPanel({
     </div>
   );
 }
+
+export { parseDiscountCodes };

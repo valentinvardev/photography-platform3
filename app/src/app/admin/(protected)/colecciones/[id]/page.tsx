@@ -7,8 +7,7 @@ import { CollectionActions } from "~/app/_components/admin/CollectionActions";
 import { FaceReindexButton } from "~/app/_components/admin/FaceReindexButton";
 import { WatermarkAllButton } from "~/app/_components/admin/WatermarkAllButton";
 import { PricingPanel } from "~/app/_components/admin/PricingPanel";
-import { CategoryAssign } from "~/app/_components/admin/CategoryAssign";
-import { parseTiers } from "~/lib/pricing";
+import { parseDiscountCodes } from "~/lib/pricing";
 import { createSignedUrl } from "~/lib/supabase/admin";
 import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
 
@@ -25,9 +24,8 @@ export default async function EditCollectionPage({
   const { page: pageParam, q } = await searchParams;
   const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
 
-  const [collection, allCategories] = await Promise.all([
+  const [collection] = await Promise.all([
     api.collection.adminGetById({ id }),
-    api.category.adminList(),
   ]);
   if (!collection) notFound();
 
@@ -78,7 +76,7 @@ export default async function EditCollectionPage({
       {/* Back */}
       <Link
         href="/admin/colecciones"
-        className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors mb-8"
+        className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-900)] hover:text-[color:var(--color-ink)] transition-colors mb-8"
       >
         ← Eventos
       </Link>
@@ -102,7 +100,7 @@ export default async function EditCollectionPage({
               </div>
             )}
             <div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-900)] mb-1">
                 Evento
               </p>
               <h1 className="font-display font-black italic text-[28px] leading-none tracking-[-0.02em] text-[color:var(--color-ink)]">
@@ -110,7 +108,7 @@ export default async function EditCollectionPage({
               </h1>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 {eventDate && (
-                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-grey-700)]">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-grey-900)]">
                     {eventDate}
                   </span>
                 )}
@@ -152,7 +150,7 @@ export default async function EditCollectionPage({
               <p className="font-display font-black italic text-[32px] leading-none" style={{ color: c.color ?? "var(--color-ink)" }}>
                 {c.value}
               </p>
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] mt-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-900)] mt-1">
                 {c.label}
               </p>
             </div>
@@ -166,33 +164,23 @@ export default async function EditCollectionPage({
         </div>
       </div>
 
-      {/* Three-column layout: upload / pricing / category */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-px border border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-300)] mb-px">
+      {/* Two-column layout: upload / pricing */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-px border border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-300)] mb-px">
         <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-ink)] mb-5">
             Subir fotos
           </p>
           <PhotoUploader collectionId={id} />
         </div>
         <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
+          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-ink)] mb-5">
             Precios
           </p>
           <PricingPanel
             collectionId={id}
             initialPricePerBib={Number(collection.pricePerBib ?? 0)}
             initialPackPrice={collection.packPrice !== null && collection.packPrice !== undefined ? Number(collection.packPrice) : null}
-            initialTiers={parseTiers(collection.discountTiers)}
-          />
-        </div>
-        <div className="bg-[color:var(--color-paper)] p-6">
-          <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-5">
-            Categoría
-          </p>
-          <CategoryAssign
-            collectionId={id}
-            initialCategoryId={collection.categoryId ?? null}
-            categories={allCategories.map((c) => ({ id: c.id, name: c.name }))}
+            initialDiscountCodes={parseDiscountCodes(collection.discountCodes)}
           />
         </div>
       </div>
@@ -200,7 +188,7 @@ export default async function EditCollectionPage({
       <div className="grid grid-cols-1 gap-px border border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-300)]">
         <div className="bg-[color:var(--color-paper)] p-6">
           <div className="flex items-center gap-3 mb-5">
-            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+            <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-ink)]">
               Galería
             </p>
             {unidentifiedCount > 0 && (

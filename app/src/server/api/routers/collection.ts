@@ -56,7 +56,7 @@ export const collectionRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const col = await ctx.db.collection.findFirst({
         where: { id: input.collectionId, isPublished: true },
-        select: { pricePerBib: true, title: true, packPrice: true, discountTiers: true },
+        select: { pricePerBib: true, title: true, packPrice: true, discountTiers: true, discountCodes: true },
       });
       if (!col) return null;
       return {
@@ -64,6 +64,7 @@ export const collectionRouter = createTRPCRouter({
         title: col.title,
         packPrice: col.packPrice !== null && col.packPrice !== undefined ? Number(col.packPrice) : null,
         discountTiers: col.discountTiers,
+        discountCodes: col.discountCodes,
       };
     }),
 
@@ -145,13 +146,14 @@ export const collectionRouter = createTRPCRouter({
         pricePerBib: z.number().min(0).optional(),
         packPrice: z.number().min(0).optional().nullable(),
         discountTiers: z.array(z.object({ minQty: z.number().int().positive(), priceEach: z.number().min(0) })).optional().nullable(),
+        discountCodes: z.array(z.object({ code: z.string().min(1), percent: z.number().min(0).max(100) })).optional().nullable(),
         isPublished: z.boolean().optional(),
         eventDate: z.string().optional().nullable(),
         categoryId: z.string().optional().nullable(),
       }),
     )
     .mutation(({ ctx, input }) => {
-      const { id, eventDate, discountTiers, ...rest } = input;
+      const { id, eventDate, discountTiers, discountCodes, ...rest } = input;
       return ctx.db.collection.update({
         where: { id },
         data: {
@@ -161,6 +163,9 @@ export const collectionRouter = createTRPCRouter({
             : {}),
           ...(discountTiers !== undefined
             ? { discountTiers: discountTiers === null ? Prisma.DbNull : discountTiers }
+            : {}),
+          ...(discountCodes !== undefined
+            ? { discountCodes: discountCodes === null ? Prisma.DbNull : discountCodes }
             : {}),
         },
       });

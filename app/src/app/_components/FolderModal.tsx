@@ -8,7 +8,7 @@ import { useCart } from "~/app/_components/CartContext";
 import { Sheet } from "~/app/_components/design/Sheet";
 import { Field } from "~/app/_components/design/Field";
 import { Lightbox } from "~/app/_components/design/Lightbox";
-import { parseTiers, calcEffectivePricePerPhoto } from "~/lib/pricing";
+import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
 
 type Step = "cart" | "buy" | "email";
 
@@ -101,6 +101,7 @@ export function BibCheckoutModal({
   const [emailError, setEmailError] = useState("");
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [photoIds, setPhotoIds] = useState(initialPhotoIds);
+  const [discountCodeInput, setDiscountCodeInput] = useState("");
 
   const { items: cartItems, toggle: toggleCart } = useCart();
   const router = useRouter();
@@ -113,9 +114,14 @@ export function BibCheckoutModal({
 
   const basePrice = collectionInfo?.price ?? 0;
   const tiers = parseTiers(collectionInfo?.discountTiers);
+  const discountCodes = parseDiscountCodes(collectionInfo?.discountCodes);
   const packPrice = collectionInfo?.packPrice ?? null;
   const effectiveBase = calcEffectivePricePerPhoto(totalPhotosInSearch, basePrice, tiers);
-  const activeTier = tiers.slice().reverse().find((t) => totalPhotosInSearch >= t.minQty);
+
+  const discountResult = applyDiscountCode(0, discountCodeInput.trim() || null, discountCodes);
+  const appliedDiscount = discountCodeInput.trim()
+    ? discountCodes.find((c) => c.code.toLowerCase() === discountCodeInput.trim().toLowerCase()) ?? null
+    : null;
 
   // Per-photo prices: use custom price if different from base, else effective tier price
   const priceById = new Map(cartItems.map((i) => [i.photoId, i.price]));
@@ -125,9 +131,12 @@ export function BibCheckoutModal({
     return effectiveBase;
   };
 
-  const selectedTotal = packMode
+  const rawTotal = packMode
     ? (packPrice ?? 0)
     : photoIds.reduce((sum, id) => sum + getPhotoPrice(id), 0);
+  const selectedTotal = appliedDiscount
+    ? Math.round(rawTotal * (1 - appliedDiscount.percent / 100))
+    : rawTotal;
 
   const packAvailable = packPrice !== null && allPhotoIds.length > 0;
   const packPhotoCount = allPhotoIds.length;
@@ -165,6 +174,7 @@ export function BibCheckoutModal({
       buyerPhone: phone || undefined,
       packMode: packMode || undefined,
       totalPhotosInSearch,
+      discountCode: appliedDiscount ? discountCodeInput.trim() : undefined,
     });
   };
 
@@ -224,17 +234,6 @@ export function BibCheckoutModal({
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {/* Active tier badge */}
-                  {activeTier && (
-                    <div className="mb-5 flex items-center gap-3 border border-[#16a34a]/30 bg-[#16a34a]/5 px-4 py-3">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#16a34a] shrink-0" />
-                      <p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#16a34a]">
-                        Descuento activo · {totalPhotosInSearch} foto{totalPhotosInSearch !== 1 ? "s" : ""} en tu búsqueda
-                        · ${effectiveBase.toLocaleString("es-AR")} c/u
-                      </p>
-                    </div>
-                  )}
-
                   {!packMode ? (
                     <ul>
                       {photoIds.map((id, i) => {
@@ -326,10 +325,44 @@ export function BibCheckoutModal({
                     <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
                       {packMode ? `Pack · ${packPhotoCount} fotos` : `${photoIds.length} ${photoIds.length === 1 ? "foto" : "fotos"}`}
                     </p>
-                    <p className="font-display italic text-[28px] leading-none text-[color:var(--color-ink)]">
-                      ${selectedTotal.toLocaleString("es-AR")}
-                    </p>
+                    <div className="text-right">
+                      {appliedDiscount && (
+                        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#16a34a] mb-0.5">
+                          -{appliedDiscount.percent}% aplicado
+                        </p>
+                      )}
+                      <p className="font-display italic text-[28px] leading-none text-[color:var(--color-ink)]">
+                        ${selectedTotal.toLocaleString("es-AR")}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Discount code */}
+                  {discountCodes.length > 0 && (
+                    <div>
+                      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+                        Código de descuento
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={discountCodeInput}
+                          onChange={(e) => setDiscountCodeInput(e.target.value.toUpperCase())}
+                          placeholder="CÓDIGO"
+                          className="flex-1 border border-[color:var(--color-grey-300)] bg-transparent px-3 py-2 font-mono text-[12px] text-[color:var(--color-ink)] uppercase focus:border-[color:var(--color-ink)] outline-none"
+                        />
+                        {discountCodeInput && (
+                          <span className={`flex items-center px-3 font-mono text-[10px] uppercase tracking-[0.14em] border ${
+                            appliedDiscount
+                              ? "border-[#16a34a] text-[#16a34a]"
+                              : "border-[color:var(--color-safelight)] text-[color:var(--color-safelight)]"
+                          }`}>
+                            {appliedDiscount ? `✓ -${appliedDiscount.percent}%` : "Inválido"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-6">
                     <Field
                       label="Nombre *"
@@ -383,6 +416,8 @@ export function BibCheckoutModal({
                       <span className="font-mono text-[11px] uppercase tracking-[0.22em]">
                         {createPreference.isPending
                           ? "Redirigiendo a MercadoPago…"
+                          : appliedDiscount
+                          ? `Pagar $${selectedTotal.toLocaleString("es-AR")} · -${appliedDiscount.percent}%`
                           : `Pagar $${selectedTotal.toLocaleString("es-AR")}`}
                       </span>
                       <span className="font-mono text-[11px] tracking-[0.22em] transition-transform group-hover:translate-x-1">

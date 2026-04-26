@@ -1,4 +1,5 @@
 export type DiscountTier = { minQty: number; priceEach: number };
+export type DiscountCode = { code: string; percent: number };
 
 export function parseTiers(raw: unknown): DiscountTier[] {
   if (!Array.isArray(raw)) return [];
@@ -11,6 +12,28 @@ export function parseTiers(raw: unknown): DiscountTier[] {
         typeof (t as Record<string, unknown>).priceEach === "number",
     )
     .sort((a, b) => a.minQty - b.minQty);
+}
+
+export function parseDiscountCodes(raw: unknown): DiscountCode[] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as unknown[]).filter(
+    (d): d is DiscountCode =>
+      typeof d === "object" &&
+      d !== null &&
+      typeof (d as Record<string, unknown>).code === "string" &&
+      typeof (d as Record<string, unknown>).percent === "number",
+  );
+}
+
+export function applyDiscountCode(
+  amount: number,
+  code: string | null | undefined,
+  codes: DiscountCode[],
+): { amount: number; percent: number | null } {
+  if (!code) return { amount, percent: null };
+  const match = codes.find((c) => c.code.toLowerCase() === code.toLowerCase());
+  if (!match) return { amount, percent: null };
+  return { amount: Math.round(amount * (1 - match.percent / 100)), percent: match.percent };
 }
 
 /** Returns the effective per-photo price given total photos found in search */

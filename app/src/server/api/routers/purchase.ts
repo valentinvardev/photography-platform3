@@ -4,7 +4,7 @@ import { env } from "~/env";
 import { sendPurchaseApprovedEmail } from "~/lib/email";
 import { createSignedUrl } from "~/lib/supabase/admin";
 import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
-import { parseTiers, calcEffectivePricePerPhoto } from "~/lib/pricing";
+import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -33,12 +33,13 @@ export const purchaseRouter = createTRPCRouter({
         buyerPhone: z.string().optional(),
         packMode: z.boolean().optional(),
         totalPhotosInSearch: z.number().int().min(1).optional(),
+        discountCode: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       const collection = await ctx.db.collection.findFirstOrThrow({
         where: { id: input.collectionId, isPublished: true },
-        select: { title: true, slug: true, pricePerBib: true, packPrice: true, discountTiers: true },
+        select: { title: true, slug: true, pricePerBib: true, packPrice: true, discountTiers: true, discountCodes: true },
       });
 
       const photos = await ctx.db.photo.findMany({
@@ -60,6 +61,13 @@ export const purchaseRouter = createTRPCRouter({
           const custom = p.price !== null ? Number(p.price) : null;
           return sum + (custom !== null && custom !== basePrice ? custom : effectiveBase);
         }, 0);
+      }
+
+      // Apply discount code if provided
+      if (input.discountCode) {
+        const codes = parseDiscountCodes(collection.discountCodes);
+        const result = applyDiscountCode(totalAmount, input.discountCode, codes);
+        totalAmount = result.amount;
       }
 
       const purchase = await ctx.db.purchase.create({
