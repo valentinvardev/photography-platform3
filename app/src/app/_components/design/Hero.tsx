@@ -50,14 +50,14 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       </motion.div>
 
       {/* Main content — bottom-left anchored */}
-      <div className="relative z-10 h-full flex flex-col justify-end pb-14 md:pb-24 px-8 md:px-14">
+      <div className="relative z-10 h-full flex flex-col justify-end pb-10 md:pb-24 px-8 md:px-14">
 
         {/* Label strip */}
         <motion.div
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease, delay: 0.1 }}
-          className="flex items-center gap-4 mb-10"
+          className="flex items-center gap-4 mb-6 md:mb-10"
         >
           <span className="block w-8 h-[2px] bg-[#FFE000]" />
           <span className="font-sans font-bold uppercase tracking-[0.28em] text-[#FFE000] text-[10px]">
@@ -95,7 +95,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.6 }}
-          className="mt-12 flex flex-col md:flex-row md:items-end gap-8 md:gap-20"
+          className="mt-7 md:mt-12 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
         >
           {/* Description + CTA */}
           <div className="max-w-sm">

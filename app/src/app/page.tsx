@@ -153,9 +153,9 @@ export default async function HomePage() {
             <Image
               src="/mercadopago.svg"
               alt="MercadoPago"
-              width={400}
-              height={80}
-              className="h-16 w-auto shrink-0"
+              width={560}
+              height={112}
+              className="h-24 w-auto shrink-0"
             />
           </Reveal>
         </div>
