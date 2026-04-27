@@ -38,15 +38,9 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         transition={{ duration: 0.5, ease, delay: 0.6 }}
         className="absolute top-24 right-8 md:right-14 flex flex-col items-end gap-2 hidden md:flex"
       >
-        {["MTB", "Trail", "Ruta"].map((d, i) => (
-          <span
-            key={d}
-            className="font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/30"
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
-            {d}
-          </span>
-        ))}
+        <span className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-white/30">
+          Outdoor
+        </span>
       </motion.div>
 
       {/* Main content — bottom-left anchored */}
@@ -90,6 +84,17 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           </motion.h1>
         </div>
 
+        {/* Slogan */}
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease, delay: 0.5 }}
+          className="mt-5 md:mt-7 font-display italic text-white/70"
+          style={{ fontSize: "clamp(18px, 2.2vw, 28px)" }}
+        >
+          El detalle del esfuerzo.
+        </motion.p>
+
         {/* Bottom row */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -98,10 +103,12 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           className="mt-7 md:mt-12 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
         >
           {/* Description + CTA */}
-          <div className="max-w-sm">
-            <p className="font-sans text-[14px] leading-[1.75] text-white/55">
-              El que observa con fuerza. Encontrá tus fotos
-              por número de dorsal o reconocimiento facial.
+          <div className="max-w-md">
+            <p className="font-sans text-[14px] leading-[1.7] text-white/60">
+              Originalmente <span className="italic text-white/80">Rikuq Sinchi</span> — el que observa con fuerza. Inmortalizamos el monte con la intensidad con la que se vive: sin ráfagas infinitas, piezas de alta fidelidad donde cada relieve cuenta una historia.
+            </p>
+            <p className="mt-3 font-sans text-[13px] leading-[1.6] text-white/40">
+              Encontrá tus fotos por número de dorsal o reconocimiento facial.
             </p>
             <a
               href="#eventos"
