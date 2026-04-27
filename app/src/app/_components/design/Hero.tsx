@@ -12,8 +12,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         <img
           src="/hero.jpg"
           alt=""
-          className="w-full h-full object-cover"
-          style={{ objectPosition: "40% 50%" }}
+          className="w-full h-full object-cover object-[65%_70%] md:object-[40%_50%]"
         />
         {/* Layered overlays — heavy left, fade up from bottom */}
         {/* Left — heavy, for text legibility */}
@@ -44,7 +43,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       </motion.div>
 
       {/* Main content — bottom-left anchored */}
-      <div className="relative z-10 h-full flex flex-col justify-end pb-28 md:pb-24 px-8 md:px-14">
+      <div className="relative z-10 h-full flex flex-col justify-end pb-44 md:pb-24 px-8 md:px-14">
 
         {/* Label strip */}
         <motion.div
