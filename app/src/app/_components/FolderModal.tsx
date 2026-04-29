@@ -513,10 +513,10 @@ export function BibCheckoutModal({
                     onClick={() => setStep("buy")}
                     className="group inline-flex items-center justify-between border border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)] px-5 py-4 hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors"
                   >
-                    <span className="font-mono text-[11px] uppercase tracking-[0.22em]">
+                    <span className="font-sans font-black text-[16px] uppercase tracking-[0.08em]">
                       Comprar · ${selectedTotal.toLocaleString("es-AR")}
                     </span>
-                    <span className="font-mono text-[11px] tracking-[0.22em] transition-transform group-hover:translate-x-1">
+                    <span className="font-sans font-black text-[16px] transition-transform group-hover:translate-x-1">
                       →
                     </span>
                   </button>
