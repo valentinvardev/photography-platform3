@@ -24,6 +24,82 @@ function verifyWebhookSignature(request: NextRequest, rawBody: string): boolean 
   return calculated === expectedHash;
 }
 
+async function processPayment(paymentId: string, mpAccessToken: string) {
+  const mpResponse = await fetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    { headers: { Authorization: `Bearer ${mpAccessToken}` } },
+  );
+
+  if (!mpResponse.ok) {
+    const errText = await mpResponse.text().catch(() => "");
+    console.error(`[MP webhook] Failed to fetch payment ${paymentId}: ${mpResponse.status} ${errText}`);
+    return;
+  }
+
+  const payment = await mpResponse.json() as {
+    id: number;
+    status: string;
+    external_reference?: string;
+    order?: { id?: string };
+  };
+
+  const purchaseId = payment.external_reference;
+  if (!purchaseId) {
+    console.error(`[MP webhook] Payment ${paymentId} has no external_reference`);
+    return;
+  }
+
+  const statusMap: Record<string, string> = {
+    approved: "APPROVED",
+    rejected: "REJECTED",
+    refunded: "REFUNDED",
+  };
+
+  const newStatus = statusMap[payment.status] ?? "PENDING";
+
+  const existing = await db.purchase.findUnique({
+    where: { id: purchaseId },
+    select: { status: true, downloadToken: true },
+  });
+
+  if (!existing) {
+    console.error(`[MP webhook] Purchase ${purchaseId} not found`);
+    return;
+  }
+
+  // Don't overwrite an already-approved purchase
+  if (existing.status === "APPROVED") return;
+
+  const updateData: Record<string, unknown> = {
+    mercadopagoPaymentId: String(payment.id),
+    mercadopagoOrderId: payment.order?.id ? String(payment.order.id) : undefined,
+    status: newStatus,
+  };
+
+  if (newStatus === "APPROVED") {
+    updateData.downloadToken = crypto.randomUUID();
+    updateData.downloadTokenExpires = null;
+  }
+
+  const updated = await db.purchase.update({
+    where: { id: purchaseId },
+    data: updateData,
+    include: { collection: { select: { title: true } } },
+  });
+
+  if (newStatus === "APPROVED" && updated.downloadToken) {
+    const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
+    void sendPurchaseApprovedEmail({
+      to: updated.buyerEmail,
+      buyerName: updated.buyerName,
+      bibNumber: updated.bibNumber,
+      collectionTitle: updated.collection.title,
+      downloadToken: updated.downloadToken,
+      photoCount,
+    });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
@@ -32,82 +108,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const body = JSON.parse(rawBody) as {
-      type?: string;
-      data?: { id?: string };
-    };
-
-    if (body.type !== "payment" || !body.data?.id) {
-      return NextResponse.json({ received: true });
-    }
-
-    const paymentId = body.data.id;
-
     const { env } = await import("~/env");
     const tokenSetting = await db.setting.findUnique({ where: { key: "mp_access_token" } });
     const mpAccessToken = tokenSetting?.value ?? env.MERCADOPAGO_ACCESS_TOKEN;
-    if (!mpAccessToken) return NextResponse.json({ received: true });
-
-    const mpResponse = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${mpAccessToken}`,
-        },
-      },
-    );
-
-    if (!mpResponse.ok) {
-      const errText = await mpResponse.text().catch(() => "");
-      console.error(`[MP webhook] Failed to fetch payment ${paymentId}: ${mpResponse.status} ${errText}`);
+    if (!mpAccessToken) {
+      console.error("[MP webhook] No access token configured");
       return NextResponse.json({ received: true });
     }
 
-    const payment = await mpResponse.json() as {
-      id: number;
-      status: string;
-      external_reference?: string;
-      order?: { id?: string };
+    const body = JSON.parse(rawBody) as {
+      type?: string;
+      topic?: string;
+      data?: { id?: string };
+      id?: string | number;
     };
 
-    const purchaseId = payment.external_reference;
-    if (!purchaseId) return NextResponse.json({ received: true });
-
-    const statusMap: Record<string, string> = {
-      approved: "APPROVED",
-      rejected: "REJECTED",
-      refunded: "REFUNDED",
-    };
-
-    const newStatus = statusMap[payment.status] ?? "PENDING";
-
-    const updateData: Record<string, unknown> = {
-      mercadopagoPaymentId: String(payment.id),
-      mercadopagoOrderId: payment.order?.id ? String(payment.order.id) : undefined,
-      status: newStatus,
-    };
-
-    if (newStatus === "APPROVED") {
-      updateData.downloadToken = crypto.randomUUID();
-      updateData.downloadTokenExpires = null;
+    // New Webhooks format: { type: "payment", data: { id: "..." } }
+    if (body.type === "payment" && body.data?.id) {
+      await processPayment(String(body.data.id), mpAccessToken);
+      return NextResponse.json({ received: true });
     }
 
-    const updated = await db.purchase.update({
-      where: { id: purchaseId },
-      data: updateData,
-      include: { collection: { select: { title: true } } },
-    });
+    // IPN format: { topic: "payment", id: "..." }
+    if (body.topic === "payment" && body.id) {
+      await processPayment(String(body.id), mpAccessToken);
+      return NextResponse.json({ received: true });
+    }
 
-    if (newStatus === "APPROVED" && updated.downloadToken) {
-      const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
-      void sendPurchaseApprovedEmail({
-        to: updated.buyerEmail,
-        buyerName: updated.buyerName,
-        bibNumber: updated.bibNumber,
-        collectionTitle: updated.collection.title,
-        downloadToken: updated.downloadToken,
-        photoCount,
-      });
+    // IPN via query params: ?topic=payment&id=...
+    const url = new URL(request.url);
+    const topicParam = url.searchParams.get("topic");
+    const idParam = url.searchParams.get("id");
+    if (topicParam === "payment" && idParam) {
+      await processPayment(idParam, mpAccessToken);
+      return NextResponse.json({ received: true });
     }
 
     return NextResponse.json({ received: true });
