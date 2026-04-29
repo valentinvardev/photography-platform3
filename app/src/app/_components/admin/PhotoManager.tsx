@@ -36,7 +36,7 @@ function MultiBibEditor({ photo }: { photo: Photo }) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [inputVal, setInputVal] = useState("");
 
-  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => router.refresh() });
+  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => window.location.reload() });
   const bibs = photo.bibNumber ? photo.bibNumber.split(",").map((b) => b.trim()).filter(Boolean) : [];
 
   const saveBibs = (newBibs: string[]) => {
@@ -124,7 +124,7 @@ function LightboxBibEditor({ photo }: { photo: Photo }) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [inputVal, setInputVal] = useState("");
 
-  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => router.refresh() });
+  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => window.location.reload() });
   const bibs = photo.bibNumber ? photo.bibNumber.split(",").map((b) => b.trim()).filter(Boolean) : [];
 
   const saveBibs = (newBibs: string[]) => {
@@ -204,7 +204,7 @@ function PriceEditor({ photo }: { photo: Photo }) {
   const [editing, setEditing] = useState(false);
   const [inputVal, setInputVal] = useState("");
 
-  const setPrice = api.photo.setPrice.useMutation({ onSuccess: () => router.refresh() });
+  const setPrice = api.photo.setPrice.useMutation({ onSuccess: () => window.location.reload() });
 
   const commit = () => {
     setEditing(false);
@@ -280,10 +280,10 @@ export function PhotoManager({
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [search, setSearch] = useState(q);
 
-  const del = api.photo.delete.useMutation({ onSuccess: () => router.refresh() });
-  const reprocess = api.photo.reprocessVideo.useMutation({ onSuccess: () => router.refresh() });
+  const del = api.photo.delete.useMutation({ onSuccess: () => window.location.reload() });
+  const reprocess = api.photo.reprocessVideo.useMutation({ onSuccess: () => window.location.reload() });
   const bulkDelete = api.photo.bulkDelete.useMutation({
-    onSuccess: () => { setSelected(new Set()); setSelectMode(false); router.refresh(); },
+    onSuccess: () => { setSelected(new Set()); setSelectMode(false); window.location.reload(); },
   });
 
   const navigate = (newPage: number, newQ?: string) => {

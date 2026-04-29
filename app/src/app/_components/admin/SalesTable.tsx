@@ -24,7 +24,7 @@ export function SalesTable({ items }: { items: Sale[] }) {
   const [emailSentId, setEmailSentId] = useState<string | null>(null);
 
   const approve = api.purchase.manualApprove.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: () => window.location.reload(),
   });
 
   const resendEmail = api.settings.resendPurchaseEmail.useMutation({

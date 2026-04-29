@@ -24,7 +24,7 @@ export function EditCollectionForm({ collection }: { collection: Collection }) {
   });
 
   const update = api.collection.update.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: () => window.location.reload(),
   });
 
   const handleSubmit = (e: React.FormEvent) => {

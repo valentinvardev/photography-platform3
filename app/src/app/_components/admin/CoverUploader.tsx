@@ -17,7 +17,7 @@ export function CoverUploader({
   const [status, setStatus] = useState<"idle" | "uploading" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const update = api.collection.update.useMutation({ onSuccess: () => router.refresh() });
+  const update = api.collection.update.useMutation({ onSuccess: () => window.location.reload() });
 
   const handleFile = async (file: File) => {
     if (!file.type.startsWith("image/")) {

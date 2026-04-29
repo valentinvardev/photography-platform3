@@ -17,7 +17,7 @@ export function CollectionActions({
   const [confirming, setConfirming] = useState(false);
 
   const toggle = api.collection.togglePublish.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: () => window.location.reload(),
   });
   const del = api.collection.delete.useMutation({
     onSuccess: () => router.push("/admin/colecciones"),

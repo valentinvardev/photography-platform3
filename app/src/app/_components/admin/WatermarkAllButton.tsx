@@ -39,7 +39,7 @@ export function WatermarkAllButton({ collectionId }: { collectionId: string }) {
 
     setStatus("done");
     void refetch();
-    router.refresh();
+    window.location.reload();
   };
 
   if (count === 0 && status === "idle") {

@@ -144,7 +144,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
   const [isDragging, setIsDragging] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const bulkAdd = api.photo.bulkAdd.useMutation({ onSuccess: () => router.refresh() });
+  const bulkAdd = api.photo.bulkAdd.useMutation({ onSuccess: () => window.location.reload() });
   const getS3UploadUrl = api.photo.getS3UploadUrl.useMutation();
 
   const updateEntry = useCallback((id: string, patch: Partial<FileEntry>) =>
@@ -160,7 +160,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
         const data = await res.json() as { bib: string | null };
         if (data.bib) {
           updateEntry(entryId, { ocrStatus: "found", bib: data.bib });
-          router.refresh();
+          window.location.reload();
           return;
         }
       } catch {
@@ -168,7 +168,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
       }
     }
     updateEntry(entryId, { ocrStatus: "not-found" });
-    router.refresh();
+    window.location.reload();
   }, [updateEntry, router]);
 
   const startOcrPolling = useCallback((entryId: string, photoId: string) => {
