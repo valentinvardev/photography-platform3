@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "motion/react";
+
+const DESCRIPTION = "Nuestra identidad evoluciona de Rikuq Sinchi a SINCHI® como un proceso de síntesis necesario para reflejar el dinamismo del deporte actual. Si bien conservamos la raíz quichua que nos define como 'mirada poderosa' o el que observa con fuerza, simplificamos el nombre para potenciar su impacto visual y recordación. SINCHI representa hoy una marca más rotunda, enfocada en la excelencia técnica y en la captura del detalle extremo en deportes outdoor.";
 
 export function Hero({ collectionsCount }: { collectionsCount: number }) {
   const ease: [number, number, number, number] = [0.16, 1, 0.3, 1];
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-[#0D0D0D]">
@@ -12,7 +16,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         <img
           src="/hero.jpg"
           alt=""
-          className="w-full h-full object-cover object-[65%_70%] md:object-[40%_50%]"
+          className="w-full h-full object-cover object-[70%_70%] md:object-[40%_50%]"
         />
         {/* Layered overlays — heavy left, fade up from bottom */}
         {/* Left — heavy, for text legibility */}
@@ -42,6 +46,21 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         </span>
       </motion.div>
 
+      {/* Large SINCHI® logo — part of the hero */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease, delay: 0.05 }}
+        className="absolute top-20 md:top-24 left-8 md:left-14 z-10"
+      >
+        <span
+          className="font-display font-black italic leading-none tracking-[-0.03em] text-white"
+          style={{ fontSize: "clamp(72px, 12vw, 160px)" }}
+        >
+          SINCHI<span className="text-[#FFE000]">®</span>
+        </span>
+      </motion.div>
+
       {/* Main content — bottom-left anchored */}
       <div className="relative z-10 h-full flex flex-col justify-end pb-44 md:pb-24 px-8 md:px-14">
 
@@ -50,19 +69,19 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease, delay: 0.1 }}
-          className="flex items-center gap-4 mb-6 md:mb-10"
+          className="flex items-center gap-4 mb-5 md:mb-8"
         >
           <span className="block w-8 h-[2px] bg-[#FFE000]" />
           <span className="font-sans font-bold uppercase tracking-[0.28em] text-[#FFE000] text-[10px]">
-            Rikuq Sinchi · Fotografía Deportiva
+            Fotografía Deportiva
           </span>
         </motion.div>
 
-        {/* Headline */}
+        {/* Headline — smaller, less protagonist */}
         <div className="overflow-hidden">
           <motion.h1
-            className="font-display font-extrabold italic leading-[0.82] tracking-[-0.02em]"
-            style={{ fontSize: "clamp(64px, 13vw, 200px)" }}
+            className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
+            style={{ fontSize: "clamp(40px, 7vw, 110px)" }}
           >
             <motion.span
               initial={{ y: "110%" }}
@@ -88,10 +107,10 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.5 }}
-          className="mt-5 md:mt-7 font-display italic text-white/70"
-          style={{ fontSize: "clamp(18px, 2.2vw, 28px)" }}
+          className="mt-4 md:mt-6 font-display italic text-white/70"
+          style={{ fontSize: "clamp(16px, 1.8vw, 24px)" }}
         >
-          El detalle del esfuerzo.
+          Donde tu esfuerzo se vuelve imagen.
         </motion.p>
 
         {/* Bottom row */}
@@ -99,19 +118,29 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.6 }}
-          className="mt-7 md:mt-12 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
+          className="mt-7 md:mt-10 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
         >
           {/* Description + CTA */}
           <div className="max-w-md">
-            <p className="font-sans text-[14px] leading-[1.7] text-white/60">
-              Originalmente <span className="italic text-white/80">Rikuq Sinchi</span> — el que observa con fuerza. Inmortalizamos el monte con la intensidad con la que se vive: sin ráfagas infinitas, piezas de alta fidelidad donde cada relieve cuenta una historia.
-            </p>
-            <p className="mt-3 font-sans text-[13px] leading-[1.6] text-white/40">
-              Encontrá tus fotos por número de dorsal o reconocimiento facial.
-            </p>
+            <div className="relative">
+              <p className={`font-sans text-[14px] leading-[1.7] text-white/60 ${expanded ? "" : "line-clamp-2"}`}>
+                {DESCRIPTION}
+              </p>
+              {!expanded && (
+                <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0D0D0D]/80 to-transparent pointer-events-none" />
+              )}
+            </div>
+            {!expanded && (
+              <button
+                onClick={() => setExpanded(true)}
+                className="mt-1 font-sans font-bold text-[12px] uppercase tracking-[0.18em] text-[#FFE000]/70 hover:text-[#FFE000] transition-colors"
+              >
+                Leer más →
+              </button>
+            )}
             <a
               href="#eventos"
-              className="mt-6 inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-7 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200"
+              className="mt-5 inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-7 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200"
             >
               Ver eventos ↗
             </a>
