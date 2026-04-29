@@ -238,8 +238,19 @@ export async function runFaceIndex(photoId: string, collectionId: string): Promi
   });
   if (!photo) return;
 
-  const imageBytes = await downloadBytes(photo.storageKey);
-  if (!imageBytes) { console.error("[FaceIndex] Download failed:", photo.storageKey); return; }
+  const rawBytes = await downloadBytes(photo.storageKey);
+  if (!rawBytes) { console.error("[FaceIndex] Download failed:", photo.storageKey); return; }
+
+  const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
+  let imageBytes: Uint8Array = rawBytes;
+  if (rawBytes.byteLength > REKOGNITION_MAX_BYTES) {
+    const compressed = await sharp(Buffer.from(rawBytes))
+      .resize({ width: 1920, withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    imageBytes = new Uint8Array(compressed);
+    console.log(`[FaceIndex] Compressed ${rawBytes.byteLength} → ${imageBytes.byteLength} bytes for photoId=${photoId}`);
+  }
 
   const rekCollectionId = rekognitionCollectionId(collectionId);
 
