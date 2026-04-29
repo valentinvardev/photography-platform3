@@ -95,7 +95,7 @@ export function SalesTable({ items }: { items: Sale[] }) {
                 <StatusBadge status={sale.status} />
               </td>
 
-              <td className="px-4 py-3 font-mono text-[11px] font-bold text-[color:var(--color-ink)]">
+              <td className="px-4 py-3 font-sans font-bold text-[14px] text-[color:var(--color-ink)]">
                 ${Number(sale.amountPaid).toLocaleString("es-AR")}
               </td>
 
