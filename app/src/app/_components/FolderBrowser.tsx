@@ -502,21 +502,21 @@ export function FolderBrowser({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 items-start">
           {/* Dorsal input */}
           <div className="min-w-0 overflow-hidden">
-            <label className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-[#FFE000]/70 mb-4">
+            <label className="block font-sans font-black uppercase tracking-[0.18em] text-[13px] text-white mb-4">
               Número de dorsal
             </label>
-            <div className="flex items-end gap-3 border-b-2 border-[#FFE000]/35 pb-3 focus-within:border-[#FFE000] transition-colors duration-200 h-[76px] md:h-[96px]">
+            <div className="flex items-end gap-3 bg-[#FFE000] px-4 pt-2 pb-3 h-[76px] md:h-[96px]">
               <input
                 type="text"
                 inputMode="numeric"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="1042"
-                className="flex-1 h-full bg-transparent border-0 outline-none font-display font-extrabold italic text-[56px] md:text-[80px] leading-none tracking-[-0.02em] text-white placeholder:text-[#FFE000]/20"
+                className="flex-1 h-full bg-transparent border-0 outline-none font-display font-black italic text-[56px] md:text-[80px] leading-none tracking-[-0.02em] text-[#1A1A1A] placeholder:text-[#1A1A1A]/25"
               />
               <button
                 onClick={() => setSearch("")}
-                className={`font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-white/30 hover:text-white transition-all shrink-0 mb-2 ${search ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                className={`font-sans font-black text-[18px] text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-all shrink-0 mb-2 ${search ? "opacity-100" : "opacity-0 pointer-events-none"}`}
               >
                 ×
               </button>
@@ -705,26 +705,7 @@ export function FolderBrowser({
           ) : allPhotos && allPhotos.length > 0 ? (
             <>
               <SectionLabel label="Fotos del evento." />
-              <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
-                  {String(allPhotos.length).padStart(3, "0")} fotografías · clic para previsualizar
-                </p>
-                <div className="flex items-center gap-px">
-                  {(["all", "bib", "no-bib"] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => { setGalleryFilter(f); setGalleryPage(0); }}
-                      className={`px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.16em] border transition-colors ${
-                        galleryFilter === f
-                          ? "border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)]"
-                          : "border-[color:var(--color-grey-300)] text-[color:var(--color-grey-500)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)]"
-                      }`}
-                    >
-                      {f === "all" ? "Todas" : f === "bib" ? "Con dorsal" : "Sin dorsal"}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <div className="mb-8" />
               <div className={GRID}>
                 {visiblePhotos.map((p, i) => (
                   <PhotoTile

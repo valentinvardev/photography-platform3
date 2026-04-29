@@ -337,32 +337,6 @@ export function BibCheckoutModal({
                     </div>
                   </div>
 
-                  {/* Discount code */}
-                  {discountCodes.length > 0 && (
-                    <div>
-                      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
-                        Código de descuento
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={discountCodeInput}
-                          onChange={(e) => setDiscountCodeInput(e.target.value.toUpperCase())}
-                          placeholder="CÓDIGO"
-                          className="flex-1 border border-[color:var(--color-grey-300)] bg-transparent px-3 py-2 font-mono text-[12px] text-[color:var(--color-ink)] uppercase focus:border-[color:var(--color-ink)] outline-none"
-                        />
-                        {discountCodeInput && (
-                          <span className={`flex items-center px-3 font-mono text-[10px] uppercase tracking-[0.14em] border ${
-                            appliedDiscount
-                              ? "border-[#16a34a] text-[#16a34a]"
-                              : "border-[color:var(--color-safelight)] text-[color:var(--color-safelight)]"
-                          }`}>
-                            {appliedDiscount ? `✓ -${appliedDiscount.percent}%` : "Inválido"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  )}
                   <div className="grid grid-cols-2 gap-6">
                     <Field
                       label="Nombre *"
@@ -397,6 +371,31 @@ export function BibCheckoutModal({
                     required
                     hint="Te llega el comprobante y el link de descarga."
                   />
+                  {discountCodes.length > 0 && (
+                    <div>
+                      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
+                        Código de descuento <span className="normal-case tracking-normal">(opcional)</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={discountCodeInput}
+                          onChange={(e) => setDiscountCodeInput(e.target.value.toUpperCase())}
+                          placeholder="CÓDIGO DE DESCUENTO"
+                          className="flex-1 border border-[color:var(--color-grey-300)] bg-transparent px-3 py-2 font-mono text-[12px] text-[color:var(--color-ink)] uppercase focus:border-[color:var(--color-ink)] outline-none"
+                        />
+                        {discountCodeInput && (
+                          <span className={`flex items-center px-3 font-mono text-[10px] uppercase tracking-[0.14em] border ${
+                            appliedDiscount
+                              ? "border-[#16a34a] text-[#16a34a]"
+                              : "border-[color:var(--color-safelight)] text-[color:var(--color-safelight)]"
+                          }`}>
+                            {appliedDiscount ? `✓ -${appliedDiscount.percent}%` : "Inválido"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {createPreference.isError && (
                     <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-1">
                       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
@@ -413,21 +412,21 @@ export function BibCheckoutModal({
                       disabled={!email || !name || createPreference.isPending}
                       className="group inline-flex items-center justify-between border border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)] px-5 py-4 hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors disabled:opacity-40 disabled:cursor-wait"
                     >
-                      <span className="font-mono text-[11px] uppercase tracking-[0.22em]">
+                      <span className="font-sans font-black text-[16px] uppercase tracking-[0.08em]">
                         {createPreference.isPending
-                          ? "Redirigiendo a MercadoPago…"
+                          ? "Redirigiendo…"
                           : appliedDiscount
                           ? `Pagar $${selectedTotal.toLocaleString("es-AR")} · -${appliedDiscount.percent}%`
                           : `Pagar $${selectedTotal.toLocaleString("es-AR")}`}
                       </span>
-                      <span className="font-mono text-[11px] tracking-[0.22em] transition-transform group-hover:translate-x-1">
+                      <span className="font-sans font-black text-[16px] transition-transform group-hover:translate-x-1">
                         →
                       </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setStep("cart")}
-                      className="link-draw font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors self-start"
+                      className="border border-[color:var(--color-grey-300)] px-4 py-2.5 font-sans font-bold text-[12px] uppercase tracking-[0.16em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors self-start"
                     >
                       ← Volver
                     </button>
@@ -487,7 +486,7 @@ export function BibCheckoutModal({
                     </button>
                     <button
                       onClick={() => setStep("cart")}
-                      className="link-draw font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors self-start"
+                      className="border border-[color:var(--color-grey-300)] px-4 py-2.5 font-sans font-bold text-[12px] uppercase tracking-[0.16em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors self-start"
                     >
                       ← Volver
                     </button>
