@@ -42,12 +42,12 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
             <img
               src="/sinchi-logo.png"
               alt="SINCHI®"
-              className="h-56 md:h-[22rem] lg:h-[32rem] w-auto"
+              className="h-56 md:h-[22rem] lg:h-[50rem] w-auto"
             />
           </motion.div>
 
-          {/* Headline — right below logo */}
-          <div className="overflow-hidden mt-3 md:mt-4">
+          {/* Headline — pulled up to close the transparent gap in the logo */}
+          <div className="overflow-hidden -mt-16 md:-mt-28 lg:-mt-40">
             <motion.h1
               className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
               style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
