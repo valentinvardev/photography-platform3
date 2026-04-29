@@ -35,7 +35,8 @@ export function PhotoGallery({
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
-  const [downloadingAll, setDownloadingAll] = useState(false);
+  const [showDownloadPanel, setShowDownloadPanel] = useState(false);
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const visiblePhotos = photos.slice(0, visibleCount);
@@ -108,10 +109,10 @@ export function PhotoGallery({
   };
 
   const handleDownloadSelected = () => void downloadPhotos(Array.from(selected).sort());
-  const handleDownloadAll = async () => {
-    setDownloadingAll(true);
-    await downloadPhotos(photos.map((_, i) => i));
-    setDownloadingAll(false);
+
+  const handleDownloadSingle = async (photo: Photo) => {
+    await downloadPhoto(photo.url, photo.filename);
+    setDownloadedIds((prev) => new Set(prev).add(photo.id));
   };
 
   const handleShare = () => {
@@ -159,12 +160,11 @@ export function PhotoGallery({
               </span>
             </button>
             <button
-              onClick={handleDownloadAll}
-              disabled={downloadingAll}
-              className="group inline-flex items-center gap-2 border border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)] px-4 py-2 hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors disabled:opacity-40"
+              onClick={() => setShowDownloadPanel(true)}
+              className="group inline-flex items-center gap-2 border border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)] px-4 py-2 hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors"
             >
               <span className="font-mono text-[10px] uppercase tracking-[0.22em]">
-                {downloadingAll ? "Descargando…" : "Descargar todo"}
+                Descargar todo
               </span>
               <span className="font-mono text-[10px] tracking-[0.22em] hidden sm:inline transition-transform group-hover:translate-y-0.5">
                 ↓
@@ -415,6 +415,103 @@ export function PhotoGallery({
               </button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Download panel ─────────────────────────────── */}
+      <AnimatePresence>
+        {showDownloadPanel && (
+          <>
+            <motion.div
+              key="dp-bg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 z-40 bg-[color:var(--color-ink)]/60 backdrop-blur-sm"
+              onClick={() => setShowDownloadPanel(false)}
+            />
+            <motion.div
+              key="dp-panel"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="fixed top-0 right-0 bottom-0 z-50 w-full max-w-sm bg-[color:var(--color-paper)] border-l border-[color:var(--color-grey-300)] flex flex-col"
+            >
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-6 h-16 border-b border-[color:var(--color-grey-300)] shrink-0">
+                <div>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                    Descargar todo
+                  </p>
+                  <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-ink)]">
+                    {downloadedIds.size} / {photos.length} descargadas
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowDownloadPanel(false)}
+                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] link-draw"
+                >
+                  Cerrar
+                </button>
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-0.5 bg-[color:var(--color-grey-300)] shrink-0">
+                <motion.div
+                  className="h-full bg-[color:var(--color-ink)]"
+                  animate={{ width: photos.length > 0 ? `${(downloadedIds.size / photos.length) * 100}%` : "0%" }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+
+              {/* Photos list */}
+              <div className="flex-1 overflow-y-auto">
+                {photos.map((photo, i) => {
+                  const done = downloadedIds.has(photo.id);
+                  return (
+                    <div
+                      key={photo.id}
+                      className={`flex items-center gap-4 px-6 py-4 border-b border-[color:var(--color-grey-300)] transition-colors ${done ? "bg-[color:var(--color-grey-300)]/40" : ""}`}
+                    >
+                      <img
+                        src={photo.url}
+                        alt=""
+                        className="w-12 h-12 object-cover shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-0.5">
+                          F. {String(i + 1).padStart(3, "0")}
+                        </p>
+                        <p className="font-mono text-[10px] text-[color:var(--color-grey-700)] truncate">
+                          {photo.filename}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => void handleDownloadSingle(photo)}
+                        disabled={done}
+                        className={`shrink-0 inline-flex items-center gap-1.5 border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] transition-colors ${
+                          done
+                            ? "border-[color:var(--color-grey-300)] text-[color:var(--color-grey-500)] cursor-default"
+                            : "border-[color:var(--color-ink)] text-[color:var(--color-ink)] hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)]"
+                        }`}
+                      >
+                        {done ? "✓" : "↓"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="shrink-0 px-6 py-4 border-t border-[color:var(--color-grey-300)]">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] text-center">
+                  Hacé click en cada foto para descargarla
+                </p>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 

@@ -153,10 +153,11 @@ export const purchaseRouter = createTRPCRouter({
       if (!purchase) return null;
       if (purchase.status !== "APPROVED") return null;
 
+      const purchasedIds = JSON.parse(purchase.photoIds as string) as string[];
       const photos = await ctx.db.photo.findMany({
         where: {
           collectionId: purchase.collectionId,
-          bibNumber: purchase.bibNumber ?? undefined,
+          id: { in: purchasedIds },
         },
         orderBy: { order: "asc" },
       });
@@ -291,9 +292,7 @@ export const purchaseRouter = createTRPCRouter({
         data: { status: "APPROVED", downloadToken: token, downloadTokenExpires: null },
         include: { collection: { select: { title: true } } },
       });
-      const photoCount = await ctx.db.photo.count({
-        where: { collectionId: updated.collectionId, bibNumber: updated.bibNumber ?? undefined },
-      });
+      const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
       void sendPurchaseApprovedEmail({
         to: updated.buyerEmail,
         buyerName: updated.buyerName,

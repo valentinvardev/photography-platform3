@@ -25,8 +25,9 @@ function purchaseApprovedHtml({
 }) {
   const name = buyerName ?? "corredor";
   const bib = bibNumber ? `#${bibNumber}` : "";
-  const photoText = photoCount
-    ? `${photoCount} foto${photoCount !== 1 ? "s" : ""} tuya${photoCount !== 1 ? "s" : ""}`
+  const count = photoCount ?? 0;
+  const photoText = count > 0
+    ? `${count} foto${count !== 1 ? "s" : ""}`
     : "tus fotos";
 
   return `<!DOCTYPE html>
@@ -36,74 +37,124 @@ function purchaseApprovedHtml({
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Tus fotos están listas — SINCHI®</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f2ec;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f2ec;padding:48px 24px;">
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:48px 24px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
 
           <!-- Header -->
           <tr>
-            <td align="center" style="padding-bottom:32px;">
-              <p style="margin:0;font-size:22px;font-style:italic;font-weight:300;color:#0a0a0a;letter-spacing:-0.03em;line-height:1;">
-                SINCHI®
-              </p>
-              <p style="margin:4px 0 0;font-family:monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#888;">
-                Fotografía de carrera
+            <td style="padding-bottom:40px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <p style="margin:0;font-size:20px;font-style:italic;font-weight:800;color:#FFE600;letter-spacing:-0.02em;line-height:1;">SINCHI®</p>
+                  </td>
+                  <td align="right">
+                    <p style="margin:0;font-family:monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#444;">Fotografía de carrera</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider top -->
+          <tr><td style="border-top:1px solid #222;padding-bottom:40px;"></td></tr>
+
+          <!-- Eyebrow -->
+          <tr>
+            <td style="padding-bottom:16px;">
+              <p style="margin:0;font-family:monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#555;">
+                (00) — ${collectionTitle}${bib ? ` · Dorsal ${bib}` : ""}
               </p>
             </td>
           </tr>
 
-          <!-- Card -->
+          <!-- Headline -->
           <tr>
-            <td style="background:#ffffff;border:1px solid #e5e0d8;padding:40px 40px 36px;">
-
-              <p style="margin:0 0 4px;font-family:monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#888;text-align:center;">
-                ${collectionTitle}${bib ? ` · Dorsal ${bib}` : ""}
+            <td style="padding-bottom:40px;">
+              <p style="margin:0;font-size:48px;font-style:italic;font-weight:800;color:#f5f2ec;line-height:0.9;letter-spacing:-0.03em;">
+                Tus fotos<br /><span style="color:#555;">están listas.</span>
               </p>
-              <p style="margin:0 0 32px;color:#0a0a0a;font-size:26px;font-style:italic;font-weight:300;text-align:center;line-height:1.1;letter-spacing:-0.02em;">
-                Tus fotos<br />están listas.
-              </p>
+            </td>
+          </tr>
 
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-                <tr><td style="border-top:1px solid #e5e0d8;"></td></tr>
-              </table>
+          <!-- Divider -->
+          <tr><td style="border-top:1px solid #222;padding-bottom:36px;"></td></tr>
 
-              <p style="margin:0 0 12px;color:#0a0a0a;font-size:15px;line-height:1.7;">
+          <!-- Body -->
+          <tr>
+            <td style="padding-bottom:16px;">
+              <p style="margin:0;color:#f5f2ec;font-size:15px;line-height:1.7;">
                 Hola, <strong>${name}</strong>
               </p>
-              <p style="margin:0 0 32px;color:#444;font-size:15px;line-height:1.7;">
-                Capturamos ${photoText} y ya las tenés disponibles en alta resolución, sin marca de agua y listas para descargar.
+            </td>
+          </tr>
+          <tr>
+            <td style="padding-bottom:40px;">
+              <p style="margin:0;color:#888;font-size:15px;line-height:1.7;">
+                Compraste ${photoText} en alta resolución, sin marca de agua. Ya las tenés disponibles para descargar cuando quieras.
               </p>
+            </td>
+          </tr>
 
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+          <!-- Stats row -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #222;">
                 <tr>
-                  <td align="center">
-                    <a href="${downloadUrl}" style="display:inline-block;padding:14px 40px;background:#0a0a0a;color:#f5f2ec;font-family:monospace;font-size:11px;letter-spacing:0.16em;text-transform:uppercase;text-decoration:none;">
-                      Ver mis fotos
-                    </a>
+                  <td style="padding:20px 24px;border-right:1px solid #222;" width="33%">
+                    <p style="margin:0 0 4px;font-family:monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#444;">Fotos</p>
+                    <p style="margin:0;font-size:24px;font-style:italic;font-weight:800;color:#f5f2ec;">${String(count).padStart(3, "0")}</p>
+                  </td>
+                  <td style="padding:20px 24px;border-right:1px solid #222;" width="33%">
+                    <p style="margin:0 0 4px;font-family:monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#444;">Resolución</p>
+                    <p style="margin:0;font-size:24px;font-style:italic;font-weight:800;color:#f5f2ec;">HD</p>
+                  </td>
+                  <td style="padding:20px 24px;" width="33%">
+                    <p style="margin:0 0 4px;font-family:monospace;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:#444;">Marca de agua</p>
+                    <p style="margin:0;font-size:24px;font-style:italic;font-weight:800;color:#f5f2ec;">no</p>
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
 
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-                <tr><td style="border-top:1px solid #e5e0d8;"></td></tr>
-              </table>
+          <!-- CTA -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <a href="${downloadUrl}" style="display:block;padding:18px 32px;background:#FFE600;color:#0a0a0a;font-family:monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;text-decoration:none;font-weight:700;text-align:center;">
+                Ver y descargar mis fotos →
+              </a>
+            </td>
+          </tr>
 
-              <p style="margin:0;color:#999;font-size:13px;line-height:1.6;text-align:center;">
-                El link no expira. ¿Alguna duda? Respondé este email y te ayudamos.
+          <!-- Divider -->
+          <tr><td style="border-top:1px solid #222;padding-bottom:24px;"></td></tr>
+
+          <!-- Footer note -->
+          <tr>
+            <td style="padding-bottom:40px;">
+              <p style="margin:0;color:#444;font-family:monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;line-height:1.8;">
+                El link no expira · ¿Alguna duda? Respondé este email
               </p>
-
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding:24px 0 0;text-align:center;">
-              <p style="margin:0 0 4px;color:#aaa;font-family:monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">
-                © ${new Date().getFullYear()} SINCHI®
-              </p>
-              <a href="${BASE_URL}" style="color:#aaa;font-family:monospace;font-size:10px;letter-spacing:0.1em;text-decoration:none;">${BASE_URL.replace("https://", "")}</a>
+            <td>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <p style="margin:0;font-family:monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#333;">© ${new Date().getFullYear()} SINCHI®</p>
+                  </td>
+                  <td align="right">
+                    <a href="${BASE_URL}" style="font-family:monospace;font-size:9px;letter-spacing:0.1em;color:#333;text-decoration:none;">${BASE_URL.replace("https://", "")}</a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 

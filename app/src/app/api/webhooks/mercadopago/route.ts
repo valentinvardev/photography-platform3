@@ -44,11 +44,15 @@ export async function POST(request: NextRequest) {
     const paymentId = body.data.id;
 
     const { env } = await import("~/env");
+    const tokenSetting = await db.setting.findUnique({ where: { key: "mp_access_token" } });
+    const mpAccessToken = tokenSetting?.value ?? env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!mpAccessToken) return NextResponse.json({ received: true });
+
     const mpResponse = await fetch(
       `https://api.mercadopago.com/v1/payments/${paymentId}`,
       {
         headers: {
-          Authorization: `Bearer ${env.MERCADOPAGO_ACCESS_TOKEN}`,
+          Authorization: `Bearer ${mpAccessToken}`,
         },
       },
     );
@@ -93,9 +97,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (newStatus === "APPROVED" && updated.downloadToken) {
-      const photoCount = await db.photo.count({
-        where: { collectionId: updated.collectionId, bibNumber: updated.bibNumber ?? undefined },
-      });
+      const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
       void sendPurchaseApprovedEmail({
         to: updated.buyerEmail,
         buyerName: updated.buyerName,
