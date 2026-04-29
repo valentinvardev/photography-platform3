@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
@@ -190,6 +191,8 @@ function PendingContent() {
 
 export default function PendingPage() {
   return (
-    <PendingContent />
+    <Suspense>
+      <PendingContent />
+    </Suspense>
   );
 }
