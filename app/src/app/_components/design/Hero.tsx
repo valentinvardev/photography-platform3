@@ -42,8 +42,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           <img
             src="/sinchi-logo.png"
             alt="SINCHI®"
-            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto object-bottom object-left"
-            style={{ marginTop: "-20%" }}
+            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto object-bottom object-left -mt-[15%] md:-mt-[24%] lg:mt-0"
           />
         </motion.div>
 
