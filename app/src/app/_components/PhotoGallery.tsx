@@ -254,21 +254,21 @@ export function PhotoGallery({
             {!selectMode ? (
               <button
                 onClick={() => setSelectMode(true)}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] link-draw"
+                className="inline-flex items-center gap-2 border border-[color:var(--color-grey-300)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
               >
                 Seleccionar
               </button>
             ) : (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={selected.size === photos.length ? clearSelection : selectAll}
-                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] link-draw"
+                  className="inline-flex items-center gap-2 border border-[color:var(--color-grey-300)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
                 >
                   {selected.size === photos.length ? "Ninguna" : "Todas"}
                 </button>
                 <button
                   onClick={exitSelectMode}
-                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] link-draw"
+                  className="inline-flex items-center gap-2 border border-[color:var(--color-grey-300)] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
                 >
                   Cancelar
                 </button>
