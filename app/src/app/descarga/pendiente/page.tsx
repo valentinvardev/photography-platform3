@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "~/trpc/react";
 
-export default function PendingPage() {
+function PendingContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const purchaseId = searchParams.get("purchase");
   const [time, setTime] = useState("");
+
   useEffect(() => {
     const tick = () =>
       setTime(
@@ -19,6 +25,23 @@ export default function PendingPage() {
     const id = setInterval(tick, 30_000);
     return () => clearInterval(id);
   }, []);
+
+  const { data } = api.purchase.checkStatus.useQuery(
+    { purchaseId: purchaseId ?? "" },
+    {
+      enabled: !!purchaseId,
+      refetchInterval: (query) => {
+        if (query.state.data?.status === "APPROVED") return false;
+        return 3000;
+      },
+    },
+  );
+
+  useEffect(() => {
+    if (data?.status === "APPROVED" && data.downloadToken) {
+      router.replace(`/descarga/${data.downloadToken}`);
+    }
+  }, [data, router]);
 
   return (
     <main className="min-h-screen bg-[color:var(--color-ink)] text-[color:var(--color-paper)] flex flex-col relative overflow-hidden">
@@ -99,10 +122,9 @@ export default function PendingPage() {
             className="mt-12 grid grid-cols-12 gap-6"
           >
             <p className="col-span-12 md:col-span-6 font-sans text-[16px] leading-[1.65] text-[color:var(--color-paper)]/75">
-              Tu pago está en proceso de acreditación. Una vez confirmado,
-              recibirás el link de descarga directamente en tu email. La espera
-              suele ser de unos minutos, aunque algunos métodos como efectivo
-              pueden tardar más.
+              Tu pago está en proceso de acreditación. Si se confirma al instante,
+              te redirigimos automáticamente. Si no, recibirás el link de descarga
+              en tu email en unos minutos.
             </p>
             <dl className="col-span-12 md:col-span-5 md:col-start-8 grid grid-cols-2 gap-6">
               <div>
@@ -163,5 +185,11 @@ export default function PendingPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function PendingPage() {
+  return (
+    <PendingContent />
   );
 }

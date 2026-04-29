@@ -22,6 +22,20 @@ const getMp = async (db: typeof dbInstance) => {
 export const purchaseRouter = createTRPCRouter({
   // ─── Public ────────────────────────────────────────────────────────────────
 
+  checkStatus: publicProcedure
+    .input(z.object({ purchaseId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const purchase = await ctx.db.purchase.findUnique({
+        where: { id: input.purchaseId },
+        select: { status: true, downloadToken: true },
+      });
+      if (!purchase) return null;
+      return {
+        status: purchase.status,
+        downloadToken: purchase.status === "APPROVED" ? purchase.downloadToken : null,
+      };
+    }),
+
   createPreference: publicProcedure
     .input(
       z.object({

@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
     );
 
     if (!mpResponse.ok) {
+      const errText = await mpResponse.text().catch(() => "");
+      console.error(`[MP webhook] Failed to fetch payment ${paymentId}: ${mpResponse.status} ${errText}`);
       return NextResponse.json({ received: true });
     }
 
@@ -109,7 +111,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ received: true });
-  } catch {
+  } catch (err) {
+    console.error("[MP webhook] Unhandled error:", err);
     return NextResponse.json({ received: true });
   }
 }
