@@ -31,23 +31,22 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       {/* Main content — single top-to-bottom column, no internal scroll */}
       <div className="relative z-10 h-full flex flex-col overflow-hidden px-8 md:px-14 pt-16 md:pt-20 pb-12">
 
-        {/* Logo — clipped container hides transparent top of the PNG */}
+        {/* Logo — cropped PNG, no margin hacks needed */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.05 }}
-          className="shrink-0 overflow-hidden"
-          style={{ maxHeight: "clamp(120px, 22vw, 380px)" }}
+          className="shrink-0"
         >
           <img
             src="/sinchi-logo.png"
             alt="SINCHI®"
-            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto object-bottom object-left -mt-[15%] md:-mt-[24%] lg:mt-0"
+            className="h-40 md:h-64 lg:h-[28rem] w-auto"
           />
         </motion.div>
 
-        {/* Headline — tight gap after logo */}
-        <div className="overflow-hidden -mt-4 md:-mt-8 shrink-0">
+        {/* Headline — right below logo */}
+        <div className="overflow-hidden mt-2 shrink-0">
           <motion.h1
             className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
             style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
