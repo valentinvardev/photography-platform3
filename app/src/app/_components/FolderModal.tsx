@@ -34,7 +34,7 @@ function PhotoRow({
 
   return (
     <li className="flex items-center gap-4 py-4 border-b border-[color:var(--color-grey-300)] last:border-b-0">
-      <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] w-12 shrink-0">
+      <span className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] w-12 shrink-0">
         {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </span>
       <button
@@ -54,7 +54,7 @@ function PhotoRow({
         )}
       </button>
       <div className="flex-1 min-w-0">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+        <p className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]">
           Número
         </p>
         <p className="font-display italic text-[20px] leading-tight text-[color:var(--color-ink)] truncate">
@@ -68,7 +68,7 @@ function PhotoRow({
       )}
       <button
         onClick={onRemove}
-        className="ml-1 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-safelight)] transition-colors shrink-0"
+        className="ml-1 font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] hover:text-[color:var(--color-safelight)] transition-colors shrink-0"
       >
         [×]
       </button>
@@ -194,7 +194,7 @@ export function BibCheckoutModal({
           {/* Header */}
           <div className="px-7 pt-9 pb-6 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+              <p className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]">
                 {step === "email"
                   ? "Ya compré"
                   : packMode
@@ -208,14 +208,14 @@ export function BibCheckoutModal({
                 {stepTitle}
               </h2>
               {collectionInfo && (
-                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] truncate">
+                <p className="mt-3 font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] truncate">
                   {collectionInfo.title}
                 </p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors shrink-0"
+              className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors shrink-0"
             >
               Cerrar [esc]
             </button>
@@ -254,13 +254,13 @@ export function BibCheckoutModal({
                     </ul>
                   ) : (
                     <div className="border border-[color:var(--color-grey-300)] px-5 py-4">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[color:var(--color-grey-500)] mb-1">
+                      <p className="font-sans font-bold text-[11px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] mb-1">
                         Pack completo
                       </p>
                       <p className="font-display italic text-[28px] leading-none text-[color:var(--color-ink)]">
                         {packPhotoCount} foto{packPhotoCount !== 1 ? "s" : ""}
                       </p>
-                      <p className="mt-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)]">
+                      <p className="mt-2 font-sans font-bold text-[11px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]/60">
                         Todas las fotos encontradas en tu búsqueda
                       </p>
                     </div>
@@ -269,7 +269,7 @@ export function BibCheckoutModal({
                   {/* Pack upsell */}
                   {packAvailable && (
                     <div className="mt-6 border border-[color:var(--color-grey-300)] px-5 py-4">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-3">
+                      <p className="font-sans font-bold text-[11px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] mb-3">
                         {packMode ? "O comprá fotos sueltas" : "Mejor oferta"}
                       </p>
                       {!packMode ? (
@@ -322,7 +322,7 @@ export function BibCheckoutModal({
                   className="flex flex-col gap-7"
                 >
                   <div className="flex items-baseline justify-between border-b border-[color:var(--color-grey-300)] pb-4">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                    <p className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]">
                       {packMode ? `Pack · ${packPhotoCount} fotos` : `${photoIds.length} ${photoIds.length === 1 ? "foto" : "fotos"}`}
                     </p>
                     <div className="text-right">
@@ -372,8 +372,8 @@ export function BibCheckoutModal({
                     hint="Te llega el comprobante y el link de descarga."
                   />
                   <div>
-                      <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
-                        Código de descuento <span className="normal-case tracking-normal">(opcional)</span>
+                      <label className="block font-sans font-bold text-[11px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] mb-2">
+                        Código de descuento <span className="normal-case tracking-normal font-semibold opacity-50">(opcional)</span>
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -499,7 +499,7 @@ export function BibCheckoutModal({
             <div className="border-t border-[color:var(--color-grey-300)] px-7 py-6 flex flex-col gap-4 shrink-0">
               {selectedTotal > 0 && (
                 <div className="flex items-baseline justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                  <span className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]">
                     {packMode ? "Pack · precio total" : "Total · sin marca de agua"}
                   </span>
                   <span className="font-display italic text-[28px] leading-none text-[color:var(--color-ink)]">
