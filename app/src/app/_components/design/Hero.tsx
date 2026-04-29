@@ -46,19 +46,18 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         </span>
       </motion.div>
 
-      {/* Large SINCHI® logo — part of the hero */}
+      {/* Logo image — part of the hero */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease, delay: 0.05 }}
         className="absolute top-20 md:top-24 left-8 md:left-14 z-10"
       >
-        <span
-          className="font-display font-black italic leading-none tracking-[-0.03em] text-white"
-          style={{ fontSize: "clamp(72px, 12vw, 160px)" }}
-        >
-          SINCHI<span className="text-[#FFE000]">®</span>
-        </span>
+        <img
+          src="/sinchi-logo.png"
+          alt="SINCHI®"
+          className="h-24 md:h-40 lg:h-52 w-auto"
+        />
       </motion.div>
 
       {/* Main content — bottom-left anchored */}
