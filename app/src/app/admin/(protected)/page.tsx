@@ -17,7 +17,7 @@ export default async function AdminDashboard() {
   return (
     <div>
       <div className="mb-10">
-        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-2">
+        <p className="font-sans font-bold text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-ink)] mb-2">
           Panel de control
         </p>
         <h1 className="font-display font-black italic leading-[0.92] tracking-[-0.03em]"
@@ -44,7 +44,7 @@ export default async function AdminDashboard() {
 
       {/* Quick actions */}
       <div className="mb-10">
-        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-4">
+        <p className="font-sans font-bold text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-ink)] mb-4">
           Acciones rápidas
         </p>
         <div className="flex flex-wrap gap-3">
@@ -56,15 +56,15 @@ export default async function AdminDashboard() {
             <Link
               key={item.href}
               href={item.href}
-              className="group inline-flex items-center gap-3 px-5 py-3 border border-[color:var(--color-grey-300)] hover:border-[color:var(--color-ink)] hover:bg-[color:var(--color-ink)] hover:text-[color:var(--color-paper)] transition-colors"
+              className="group inline-flex items-center gap-3 px-5 py-3.5 border border-[color:var(--color-grey-300)] hover:border-[#FFE600] hover:bg-[#FFE600] transition-colors"
             >
-              <span className="font-mono text-[12px] text-[color:var(--color-grey-700)] group-hover:text-[color:var(--color-paper)] transition-colors">
+              <span className="font-sans font-black text-[15px] text-[color:var(--color-ink)]">
                 {item.icon}
               </span>
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
+              <span className="font-sans font-bold text-[13px] uppercase tracking-[0.1em] text-[color:var(--color-ink)]">
                 {item.label}
               </span>
-              <span className="font-mono text-[11px] transition-transform group-hover:translate-x-0.5">
+              <span className="font-sans font-bold text-[13px] transition-transform group-hover:translate-x-0.5 text-[color:var(--color-ink)]">
                 →
               </span>
             </Link>
@@ -75,12 +75,12 @@ export default async function AdminDashboard() {
       {/* Recent sales */}
       <div>
         <div className="flex items-baseline justify-between mb-4">
-          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+          <p className="font-sans font-bold text-[13px] uppercase tracking-[0.14em] text-[color:var(--color-ink)]">
             Ventas recientes
           </p>
           <Link
             href="/admin/ventas"
-            className="font-mono text-[12px] uppercase tracking-[0.18em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors"
+            className="font-sans font-bold text-[13px] uppercase tracking-[0.1em] text-[color:var(--color-ink)] hover:text-[#FFE600] transition-colors"
           >
             Ver todas →
           </Link>
@@ -89,16 +89,16 @@ export default async function AdminDashboard() {
         <div className="border border-[color:var(--color-grey-300)]">
           {recentSales.items.length === 0 ? (
             <div className="py-16 text-center">
-              <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+              <p className="font-sans font-bold text-[13px] uppercase tracking-[0.14em] text-[color:var(--color-ink)]">
                 Sin ventas registradas
               </p>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[color:var(--color-grey-300)]">
+                <tr className="border-b border-[color:var(--color-grey-300)] bg-[color:var(--color-grey-100)]">
                   {["Email", "Dorsal", "Estado", "Monto"].map((h) => (
-                    <th key={h} className="px-5 py-3 text-left font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+                    <th key={h} className="px-5 py-3 text-left font-sans font-bold text-[12px] uppercase tracking-[0.14em] text-[color:var(--color-ink)]">
                       {h}
                     </th>
                   ))}
@@ -108,20 +108,20 @@ export default async function AdminDashboard() {
                 {recentSales.items.map((sale, i) => (
                   <tr
                     key={sale.id}
-                    className={`border-b border-[color:var(--color-grey-100)] hover:bg-[color:var(--color-grey-100)] transition-colors ${
+                    className={`border-b border-[color:var(--color-grey-100)] hover:bg-[#FFE600]/10 transition-colors ${
                       i === recentSales.items.length - 1 ? "border-0" : ""
                     }`}
                   >
-                    <td className="px-5 py-4 font-sans text-[13px] text-[color:var(--color-grey-700)]">
+                    <td className="px-5 py-4 font-sans font-semibold text-[13px] text-[color:var(--color-ink)]">
                       {sale.buyerEmail}
                     </td>
-                    <td className="px-5 py-4 font-mono text-[12px] font-bold text-[color:var(--color-ink)]">
+                    <td className="px-5 py-4 font-sans font-bold text-[13px] text-[color:var(--color-ink)]">
                       {sale.bibNumber ? `#${sale.bibNumber}` : "—"}
                     </td>
                     <td className="px-5 py-4">
                       <StatusBadge status={sale.status} />
                     </td>
-                    <td className="px-5 py-4 font-mono text-[12px] text-[color:var(--color-ink)]">
+                    <td className="px-5 py-4 font-sans font-bold text-[14px] text-[color:var(--color-ink)]">
                       ${Number(sale.amountPaid).toLocaleString("es-AR")}
                     </td>
                   </tr>
@@ -150,14 +150,14 @@ function StatCard({
 }) {
   return (
     <div className="bg-[color:var(--color-paper)] px-5 py-5">
-      <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-4">
+      <p className="font-sans font-bold text-[12px] uppercase tracking-[0.14em] text-[color:var(--color-ink)] mb-4">
         {label}
       </p>
-      <p className={`font-display font-black italic leading-none ${dim ? "text-[color:var(--color-grey-700)]" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
+      <p className={`font-display font-black italic leading-none ${dim ? "text-[color:var(--color-ink)]/50" : "text-[color:var(--color-ink)]"} ${isText || dim ? "text-[32px]" : "text-[48px]"}`}>
         {value}
       </p>
       {sub && (
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[color:var(--color-grey-400)] mt-2">
+        <p className="font-sans font-semibold text-[12px] text-[color:var(--color-ink)]/50 mt-2">
           {sub}
         </p>
       )}
@@ -174,8 +174,8 @@ function StatusBadge({ status }: { status: string }) {
   };
   const s = map[status] ?? { color: "#64748b", label: status };
   return (
-    <span className="inline-flex items-center gap-1.5 font-mono text-[12px] uppercase tracking-[0.14em]" style={{ color: s.color }}>
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.color }} />
+    <span className="inline-flex items-center gap-1.5 font-sans font-bold text-[13px] uppercase tracking-[0.08em]" style={{ color: s.color }}>
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
       {s.label}
     </span>
   );

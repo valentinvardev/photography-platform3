@@ -21,10 +21,10 @@ function NavItem({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`block px-5 py-3 font-mono text-[12px] uppercase tracking-[0.16em] transition-colors ${
+      className={`block px-5 py-3.5 font-sans font-bold text-[14px] uppercase tracking-[0.1em] transition-colors ${
         isActive
-          ? "bg-[color:var(--color-ink)] text-[color:var(--color-paper)]"
-          : "text-[color:var(--color-grey-900)] hover:text-[color:var(--color-ink)] hover:bg-[color:var(--color-grey-100)]"
+          ? "bg-[#FFE600] text-[#0a0a0a]"
+          : "text-[color:var(--color-ink)] hover:bg-[#FFE600]/15 hover:text-[color:var(--color-ink)]"
       }`}
     >
       {label}
@@ -47,10 +47,10 @@ export function AdminShell({
       {/* Branding */}
       <div className="px-5 py-5 border-b border-[color:var(--color-grey-300)] flex items-start justify-between">
         <div>
-          <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-1.5">
-            Admin
+          <p className="font-sans font-bold text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-ink)] mb-1.5">
+            Panel Admin
           </p>
-          <span className="font-display font-black italic text-[20px] leading-none text-[color:var(--color-brand)]">
+          <span className="font-display font-black italic text-[22px] leading-none text-[color:var(--color-brand)]">
             SINCHI®
           </span>
         </div>
@@ -68,17 +68,17 @@ export function AdminShell({
 
       {/* User */}
       <div className="px-5 py-3 border-b border-[color:var(--color-grey-300)]">
-        <p className="font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)] mb-0.5">
+        <p className="font-sans font-bold text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-ink)] mb-0.5">
           Sesión
         </p>
-        <p className="font-mono text-[12px] text-[color:var(--color-grey-900)] truncate">
+        <p className="font-sans font-semibold text-[13px] text-[color:var(--color-ink)] truncate">
           {userEmail ?? "—"}
         </p>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 py-3">
-        <p className="px-5 pb-2 font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+        <p className="px-5 pb-2 font-sans font-bold text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-ink)]/50">
           Navegación
         </p>
         <NavItem href="/admin" label="Dashboard" onNavigate={close} />
@@ -95,13 +95,13 @@ export function AdminShell({
           href="/"
           target="_blank"
           onClick={close}
-          className="flex items-center gap-2 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-ink)] transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 font-sans font-bold text-[13px] uppercase tracking-[0.1em] text-[color:var(--color-ink)] hover:text-[#FFE600] transition-colors"
         >
           <span>↗</span> Ver sitio
         </Link>
         <Link
           href="/api/auth/signout"
-          className="flex items-center gap-2 px-5 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-[color:var(--color-grey-700)] hover:text-[color:var(--color-safelight)] transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 font-sans font-bold text-[13px] uppercase tracking-[0.1em] text-[color:var(--color-ink)] hover:text-[color:var(--color-safelight)] transition-colors"
         >
           <span>→</span> Cerrar sesión
         </Link>
@@ -150,7 +150,7 @@ export function AdminShell({
           <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">
             SINCHI®
           </span>
-          <span className="ml-auto font-mono text-[12px] uppercase tracking-[0.22em] text-[color:var(--color-grey-700)]">
+          <span className="ml-auto font-sans font-bold text-[13px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]">
             Admin
           </span>
         </header>
