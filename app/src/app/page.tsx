@@ -75,18 +75,8 @@ export default async function HomePage() {
             Sponsors
           </p>
           <div className="flex items-center justify-center gap-16 md:gap-28 flex-wrap">
-            {/* Sponsor 1 */}
-            <div className="w-36 md:w-48 h-16 border border-dashed border-[color:var(--color-grey-300)] flex items-center justify-center">
-              <span className="font-sans font-bold text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
-                Logo sponsor
-              </span>
-            </div>
-            {/* Sponsor 2 */}
-            <div className="w-36 md:w-48 h-16 border border-dashed border-[color:var(--color-grey-300)] flex items-center justify-center">
-              <span className="font-sans font-bold text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
-                Logo sponsor
-              </span>
-            </div>
+            <img src="/sponsor1.webp" alt="Sponsor" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
+            <img src="/ponchoproject.webp" alt="Poncho Project" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
           </div>
         </div>
       </section>
