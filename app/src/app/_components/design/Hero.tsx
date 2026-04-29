@@ -43,12 +43,12 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
             src="/sinchi-logo.png"
             alt="SINCHI®"
             className="h-56 md:h-[22rem] lg:h-[50rem] w-auto object-bottom object-left"
-            style={{ marginTop: "-8%" }}
+            style={{ marginTop: "-20%" }}
           />
         </motion.div>
 
         {/* Headline — tight gap after logo */}
-        <div className="overflow-hidden mt-2 shrink-0">
+        <div className="overflow-hidden -mt-4 md:-mt-8 shrink-0">
           <motion.h1
             className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
             style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
@@ -98,25 +98,31 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
               <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0D0D0D]/80 to-transparent pointer-events-none" />
             )}
           </div>
-
-          {/* Leer más — right below description */}
-          {!expanded && (
-            <button
-              onClick={() => setExpanded(true)}
-              className="mt-2 font-sans font-black text-[13px] text-[#FFE000] underline underline-offset-4 hover:no-underline transition-all"
-            >
-              Leer más →
-            </button>
-          )}
-
-          {/* Ver eventos — below leer más with more distance */}
-          <a
-            href="#eventos"
-            className="mt-8 inline-flex items-center gap-4 bg-[#FFE000] text-[#1A1A1A] px-9 py-5 font-sans font-black uppercase tracking-[0.18em] text-[13px] hover:bg-[#D4BB00] transition-colors duration-200"
-          >
-            Ver eventos ↗
-          </a>
         </motion.div>
+
+        {/* Leer más — pegado justo debajo de la descripción */}
+        {!expanded && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            onClick={() => setExpanded(true)}
+            className="mt-2 shrink-0 self-start font-sans font-black text-[13px] text-[#FFE000] underline underline-offset-4 hover:no-underline transition-all"
+          >
+            Leer más →
+          </motion.button>
+        )}
+
+        {/* Ver eventos — con buena distancia debajo */}
+        <motion.a
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.75 }}
+          href="#eventos"
+          className="mt-10 shrink-0 self-start inline-flex items-center gap-4 bg-[#FFE000] text-[#1A1A1A] px-9 py-5 font-sans font-black uppercase tracking-[0.18em] text-[13px] hover:bg-[#D4BB00] transition-colors duration-200"
+        >
+          Ver eventos ↗
+        </motion.a>
 
         {/* Stats — pushed to bottom on desktop */}
         <div className="hidden md:flex items-end gap-10 mt-auto">
