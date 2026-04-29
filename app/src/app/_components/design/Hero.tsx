@@ -28,25 +28,27 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       {/* Yellow left accent bar */}
       <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
 
-      {/* Main content — single top-to-bottom column */}
-      <div className="relative z-10 h-full flex flex-col overflow-y-auto px-8 md:px-14 pt-16 md:pt-20 pb-12">
+      {/* Main content — single top-to-bottom column, no internal scroll */}
+      <div className="relative z-10 h-full flex flex-col overflow-hidden px-8 md:px-14 pt-16 md:pt-20 pb-12">
 
-        {/* Logo */}
+        {/* Logo — clipped container hides transparent top of the PNG */}
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease, delay: 0.05 }}
-          className="shrink-0"
+          className="shrink-0 overflow-hidden"
+          style={{ maxHeight: "clamp(120px, 22vw, 380px)" }}
         >
           <img
             src="/sinchi-logo.png"
             alt="SINCHI®"
-            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto"
+            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto object-bottom object-left"
+            style={{ marginTop: "-8%" }}
           />
         </motion.div>
 
-        {/* Headline — negative margin to eat the transparent padding of the PNG */}
-        <div className="overflow-hidden -mt-10 md:-mt-20 lg:-mt-36 shrink-0">
+        {/* Headline — tight gap after logo */}
+        <div className="overflow-hidden mt-2 shrink-0">
           <motion.h1
             className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
             style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
@@ -75,7 +77,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.5 }}
-          className="mt-3 shrink-0 font-display italic text-white/60"
+          className="mt-2 shrink-0 font-display italic text-white/60"
           style={{ fontSize: "clamp(15px, 1.6vw, 22px)" }}
         >
           Donde tu esfuerzo se vuelve imagen.
