@@ -28,115 +28,114 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       {/* Yellow left accent bar */}
       <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
 
-      {/* Main content — top to bottom flow */}
-      <div className="relative z-10 h-full flex flex-col px-8 md:px-14">
+      {/* Main content — single top-to-bottom column */}
+      <div className="relative z-10 h-full flex flex-col overflow-y-auto px-8 md:px-14 pt-16 md:pt-20 pb-12">
 
-        {/* Top: logo + headline */}
-        <div className="pt-20 md:pt-24">
-          {/* Logo */}
-          <motion.div
-            initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease, delay: 0.05 }}
+        {/* Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease, delay: 0.05 }}
+          className="shrink-0"
+        >
+          <img
+            src="/sinchi-logo.png"
+            alt="SINCHI®"
+            className="h-56 md:h-[22rem] lg:h-[50rem] w-auto"
+          />
+        </motion.div>
+
+        {/* Headline — negative margin to eat the transparent padding of the PNG */}
+        <div className="overflow-hidden -mt-10 md:-mt-20 lg:-mt-36 shrink-0">
+          <motion.h1
+            className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
+            style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
           >
-            <img
-              src="/sinchi-logo.png"
-              alt="SINCHI®"
-              className="h-56 md:h-[22rem] lg:h-[50rem] w-auto"
-            />
-          </motion.div>
-
-          {/* Headline — pulled up to close the transparent gap in the logo */}
-          <div className="overflow-hidden -mt-16 md:-mt-28 lg:-mt-40">
-            <motion.h1
-              className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
-              style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
+            <motion.span
+              initial={{ y: "110%" }}
+              animate={{ y: "0%" }}
+              transition={{ duration: 0.75, ease, delay: 0.2 }}
+              className="block text-white"
             >
-              <motion.span
-                initial={{ y: "110%" }}
-                animate={{ y: "0%" }}
-                transition={{ duration: 0.75, ease, delay: 0.2 }}
-                className="block text-white"
-              >
-                MIRADA
-              </motion.span>
-              <motion.span
-                initial={{ y: "110%" }}
-                animate={{ y: "0%" }}
-                transition={{ duration: 0.75, ease, delay: 0.32 }}
-                className="block text-[#FFE000]"
-              >
-                PODEROSA.
-              </motion.span>
-            </motion.h1>
-          </div>
-
-          {/* Slogan */}
-          <motion.p
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease, delay: 0.5 }}
-            className="mt-3 md:mt-4 font-display italic text-white/60"
-            style={{ fontSize: "clamp(15px, 1.6vw, 22px)" }}
-          >
-            Donde tu esfuerzo se vuelve imagen.
-          </motion.p>
+              MIRADA
+            </motion.span>
+            <motion.span
+              initial={{ y: "110%" }}
+              animate={{ y: "0%" }}
+              transition={{ duration: 0.75, ease, delay: 0.32 }}
+              className="block text-[#FFE000]"
+            >
+              PODEROSA.
+            </motion.span>
+          </motion.h1>
         </div>
 
-        {/* Bottom: description + CTA + stats */}
+        {/* Slogan — right below headline */}
+        <motion.p
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease, delay: 0.5 }}
+          className="mt-3 shrink-0 font-display italic text-white/60"
+          style={{ fontSize: "clamp(15px, 1.6vw, 22px)" }}
+        >
+          Donde tu esfuerzo se vuelve imagen.
+        </motion.p>
+
+        {/* Description — right below slogan */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.6 }}
-          className="mt-auto pb-14 md:pb-20 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
+          className="mt-4 max-w-md shrink-0"
         >
-          {/* Description + CTA */}
-          <div className="max-w-md">
-            <div className="relative">
-              <p className={`font-sans text-[14px] leading-[1.7] text-white/60 ${expanded ? "" : "line-clamp-2"}`}>
-                {DESCRIPTION}
-              </p>
-              {!expanded && (
-                <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0D0D0D]/80 to-transparent pointer-events-none" />
-              )}
-            </div>
+          <div className="relative">
+            <p className={`font-sans text-[14px] leading-[1.7] text-white/60 ${expanded ? "" : "line-clamp-2"}`}>
+              {DESCRIPTION}
+            </p>
             {!expanded && (
-              <button
-                onClick={() => setExpanded(true)}
-                className="mt-2 font-sans font-black text-[13px] text-[#FFE000] underline underline-offset-4 hover:no-underline transition-all"
-              >
-                Leer más →
-              </button>
+              <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0D0D0D]/80 to-transparent pointer-events-none" />
             )}
-            <a
-              href="#eventos"
-              className="mt-4 inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-7 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200"
-            >
-              Ver eventos ↗
-            </a>
           </div>
 
-          {/* Stats */}
-          <div className="hidden md:flex items-end gap-10 md:ml-auto">
-            <div className="text-left">
-              <span className="block font-display font-extrabold italic leading-none text-white"
-                    style={{ fontSize: "clamp(40px, 5vw, 64px)" }}>
-                {String(collectionsCount).padStart(2, "0")}
-              </span>
-              <span className="block mt-1.5 font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35">
-                Eventos activos
-              </span>
-            </div>
-            <div className="text-left border-l border-white/10 pl-10">
-              <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-1.5">
-                Buscá por
-              </span>
-              <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-[#FFE000]/70">
-                Dorsal · Cara
-              </span>
-            </div>
-          </div>
+          {/* Leer más — right below description */}
+          {!expanded && (
+            <button
+              onClick={() => setExpanded(true)}
+              className="mt-2 font-sans font-black text-[13px] text-[#FFE000] underline underline-offset-4 hover:no-underline transition-all"
+            >
+              Leer más →
+            </button>
+          )}
+
+          {/* Ver eventos — below leer más with more distance */}
+          <a
+            href="#eventos"
+            className="mt-8 inline-flex items-center gap-4 bg-[#FFE000] text-[#1A1A1A] px-9 py-5 font-sans font-black uppercase tracking-[0.18em] text-[13px] hover:bg-[#D4BB00] transition-colors duration-200"
+          >
+            Ver eventos ↗
+          </a>
         </motion.div>
+
+        {/* Stats — pushed to bottom on desktop */}
+        <div className="hidden md:flex items-end gap-10 mt-auto">
+          <div className="text-left">
+            <span className="block font-display font-extrabold italic leading-none text-white"
+                  style={{ fontSize: "clamp(40px, 5vw, 64px)" }}>
+              {String(collectionsCount).padStart(2, "0")}
+            </span>
+            <span className="block mt-1.5 font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35">
+              Eventos activos
+            </span>
+          </div>
+          <div className="text-left border-l border-white/10 pl-10">
+            <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-white/35 mb-1.5">
+              Buscá por
+            </span>
+            <span className="block font-sans font-bold uppercase tracking-[0.22em] text-[10px] text-[#FFE000]/70">
+              Dorsal · Cara
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Scroll indicator */}
