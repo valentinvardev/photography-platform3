@@ -57,44 +57,41 @@ async function processPayment(paymentId: string, mpAccessToken: string) {
 
   const newStatus = statusMap[payment.status] ?? "PENDING";
 
-  const existing = await db.purchase.findUnique({
-    where: { id: purchaseId },
-    select: { status: true, downloadToken: true },
-  });
-
-  if (!existing) {
-    console.error(`[MP webhook] Purchase ${purchaseId} not found`);
-    return;
-  }
-
-  // Don't overwrite an already-approved purchase
-  if (existing.status === "APPROVED") return;
-
   const updateData: Record<string, unknown> = {
     mercadopagoPaymentId: String(payment.id),
     mercadopagoOrderId: payment.order?.id ? String(payment.order.id) : undefined,
     status: newStatus,
   };
 
+  const downloadToken = crypto.randomUUID();
   if (newStatus === "APPROVED") {
-    updateData.downloadToken = crypto.randomUUID();
+    updateData.downloadToken = downloadToken;
     updateData.downloadTokenExpires = null;
   }
 
-  const updated = await db.purchase.update({
-    where: { id: purchaseId },
+  // Atomic conditional update — only runs if not already APPROVED.
+  // Prevents double emails when MP sends the webhook more than once.
+  const count = await db.purchase.updateMany({
+    where: { id: purchaseId, status: { not: "APPROVED" } },
     data: updateData,
-    include: { collection: { select: { title: true } } },
   });
 
-  if (newStatus === "APPROVED" && updated.downloadToken) {
-    const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
+  if (count.count === 0) return; // Already processed
+
+  if (newStatus === "APPROVED") {
+    const purchase = await db.purchase.findUnique({
+      where: { id: purchaseId },
+      include: { collection: { select: { title: true } } },
+    });
+    if (!purchase?.downloadToken) return;
+
+    const photoCount = (JSON.parse(purchase.photoIds as string) as string[]).length;
     void sendPurchaseApprovedEmail({
-      to: updated.buyerEmail,
-      buyerName: updated.buyerName,
-      bibNumber: updated.bibNumber,
-      collectionTitle: updated.collection.title,
-      downloadToken: updated.downloadToken,
+      to: purchase.buyerEmail,
+      buyerName: purchase.buyerName,
+      bibNumber: purchase.bibNumber,
+      collectionTitle: purchase.collection.title,
+      downloadToken: purchase.downloadToken,
       photoCount,
     });
   }
