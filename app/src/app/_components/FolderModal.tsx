@@ -371,8 +371,7 @@ export function BibCheckoutModal({
                     required
                     hint="Te llega el comprobante y el link de descarga."
                   />
-                  {discountCodes.length > 0 && (
-                    <div>
+                  <div>
                       <label className="block font-mono text-[9px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-2">
                         Código de descuento <span className="normal-case tracking-normal">(opcional)</span>
                       </label>
@@ -394,8 +393,7 @@ export function BibCheckoutModal({
                           </span>
                         )}
                       </div>
-                    </div>
-                  )}
+                  </div>
                   {createPreference.isError && (
                     <div className="border-l-2 border-[color:var(--color-safelight)] pl-4 py-1">
                       <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-safelight)]">
