@@ -553,9 +553,13 @@ export function PhotoGallery({
                 </button>
                 <button
                   onClick={closeLightbox}
-                  className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/80 hover:text-[color:var(--color-paper)] transition-colors"
+                  aria-label="Cerrar"
+                  className="text-[color:var(--color-paper)]/60 hover:text-[color:var(--color-paper)] transition-colors"
                 >
-                  Cerrar [esc]
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
+                    <circle cx="16" cy="16" r="14.5" stroke="currentColor" strokeWidth="1.2"/>
+                    <path d="M11 11l10 10M21 11l-10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
                 </button>
               </div>
             </div>

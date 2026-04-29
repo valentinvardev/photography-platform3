@@ -215,9 +215,13 @@ export function BibCheckoutModal({
             </div>
             <button
               onClick={onClose}
-              className="font-sans font-bold text-[12px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors shrink-0"
+              aria-label="Cerrar"
+              className="text-[color:var(--color-grey-500)] hover:text-[color:var(--color-ink)] transition-colors shrink-0"
             >
-              Cerrar [esc]
+              <svg width="30" height="30" viewBox="0 0 32 32" fill="none" aria-hidden>
+                <circle cx="16" cy="16" r="14.5" stroke="currentColor" strokeWidth="1.2"/>
+                <path d="M11 11l10 10M21 11l-10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
             </button>
           </div>
 

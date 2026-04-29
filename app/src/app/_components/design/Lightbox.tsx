@@ -215,7 +215,7 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
           transition={{ duration: 0.3 }}
           onClick={onClose}
           data-cursor="dark"
-          className="fixed inset-0 z-[120] bg-[#0D0D0D] flex flex-col cursor-none"
+          className="fixed inset-0 z-[120] bg-[#0D0D0D] flex flex-col cursor-default"
         >
           {/* Yellow left accent */}
           <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE600] z-10" />
@@ -239,9 +239,13 @@ export function Lightbox({ open, onClose, url, mimeType, filename, caption, onPr
               {toolbar}
               <button
                 onClick={onClose}
-                className="font-mono text-[10px] uppercase tracking-[0.22em] text-white/50 hover:text-white transition-colors"
+                aria-label="Cerrar"
+                className="text-white/50 hover:text-white transition-colors"
               >
-                Cerrar [esc]
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden>
+                  <circle cx="16" cy="16" r="14.5" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M11 11l10 10M21 11l-10 10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
               </button>
             </div>
           </div>
