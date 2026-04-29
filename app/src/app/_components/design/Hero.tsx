@@ -93,7 +93,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
               {DESCRIPTION}
             </p>
             {!expanded && (
-              <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0D0D0D]/80 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#0D0D0D]/40 via-[#0D0D0D]/15 to-transparent pointer-events-none" />
             )}
           </div>
         </motion.div>
