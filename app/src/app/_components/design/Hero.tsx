@@ -88,8 +88,10 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           transition={{ duration: 0.6, ease, delay: 0.6 }}
           className="mt-4 max-w-md shrink-0"
         >
-          <div className="relative">
-            <p className={`font-sans text-[14px] leading-[1.7] text-white/60 ${expanded ? "" : "line-clamp-2"}`}>
+          <div className="relative md:bg-transparent rounded-sm">
+            {/* Mobile legibility backdrop */}
+            <div className="absolute -inset-x-3 -inset-y-2 md:hidden rounded-sm bg-[#0D0D0D]/50 blur-md" />
+            <p className={`relative font-sans text-[14px] leading-[1.7] text-white/80 md:text-white/60 ${expanded ? "" : "line-clamp-2"}`}>
               {DESCRIPTION}
             </p>
             {!expanded && (
