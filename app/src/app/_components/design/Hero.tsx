@@ -16,7 +16,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
         <img
           src="/hero.jpg"
           alt=""
-          className="w-full h-full object-cover object-[70%_70%] md:object-[40%_50%]"
+          className="w-full h-full object-cover object-[calc(70%+3rem)_calc(70%+3rem)] md:object-[40%_50%]"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-[#0D0D0D]/95 via-[#0D0D0D]/55 to-transparent" style={{ width: "72%" }} />
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0D0D0D]/70 to-transparent" />
