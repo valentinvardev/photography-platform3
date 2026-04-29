@@ -6,9 +6,13 @@ import { MobileNav } from "~/app/_components/MobileNav";
 
 export function Nav() {
   const [scrolled, setScrolled] = useState(false);
+  const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 60);
+      setPastHero(window.scrollY > window.innerHeight * 0.85);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -23,8 +27,11 @@ export function Nav() {
       }`}
     >
       <div className="flex items-center justify-between px-6 md:px-10 h-16">
-        {/* SINCHI® wordmark */}
-        <Link href="/" className="group flex items-end gap-1.5 shrink-0">
+        {/* SINCHI® wordmark — visible only after scrolling past the hero */}
+        <Link
+          href="/"
+          className={`group flex items-end gap-1.5 shrink-0 transition-all duration-300 ${pastHero ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        >
           <span
             className="font-display font-extrabold italic leading-none text-[#FFE000] transition-opacity group-hover:opacity-80"
             style={{ fontSize: "clamp(20px, 2.5vw, 26px)" }}

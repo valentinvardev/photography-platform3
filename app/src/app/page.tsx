@@ -68,6 +68,29 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ════════ SPONSORS ════════ */}
+      <section className="px-6 md:px-10 py-14 border-t border-[color:var(--color-grey-300)]">
+        <div className="max-w-[1600px] mx-auto">
+          <p className="font-sans font-bold uppercase tracking-[0.28em] text-[11px] text-[color:var(--color-ink)]/40 mb-10 text-center">
+            Sponsors
+          </p>
+          <div className="flex items-center justify-center gap-16 md:gap-28 flex-wrap">
+            {/* Sponsor 1 */}
+            <div className="w-36 md:w-48 h-16 border border-dashed border-[color:var(--color-grey-300)] flex items-center justify-center">
+              <span className="font-sans font-bold text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
+                Logo sponsor
+              </span>
+            </div>
+            {/* Sponsor 2 */}
+            <div className="w-36 md:w-48 h-16 border border-dashed border-[color:var(--color-grey-300)] flex items-center justify-center">
+              <span className="font-sans font-bold text-[11px] uppercase tracking-[0.18em] text-[color:var(--color-grey-400)]">
+                Logo sponsor
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ════════ YELLOW CTA FULL BLEED ════════ */}
       <section
         data-cursor="dark"

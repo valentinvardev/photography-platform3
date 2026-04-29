@@ -11,113 +11,84 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
 
   return (
     <section className="relative h-[100svh] min-h-[640px] w-full overflow-hidden bg-[#0D0D0D]">
-      {/* Background image — full bleed */}
+      {/* Background image */}
       <div className="absolute inset-0">
         <img
           src="/hero.jpg"
           alt=""
           className="w-full h-full object-cover object-[70%_70%] md:object-[40%_50%]"
         />
-        {/* Layered overlays — heavy left, fade up from bottom */}
-        {/* Left — heavy, for text legibility */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#0D0D0D]/95 via-[#0D0D0D]/55 to-transparent" style={{ width: "72%" }} />
-        {/* Top edge — for nav */}
         <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#0D0D0D]/70 to-transparent" />
-        {/* Bottom edge — full width */}
         <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#0D0D0D]/90 to-transparent" />
-        {/* Top-right corner vignette */}
         <div className="absolute top-0 right-0 w-2/5 h-2/5" style={{ background: "radial-gradient(ellipse at top right, rgba(13,13,13,0.75) 0%, transparent 70%)" }} />
-        {/* Bottom-right corner vignette */}
         <div className="absolute bottom-0 right-0 w-2/5 h-2/5" style={{ background: "radial-gradient(ellipse at bottom right, rgba(13,13,13,0.80) 0%, transparent 70%)" }} />
       </div>
 
       {/* Yellow left accent bar */}
       <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#FFE000]" />
 
-      {/* Top-right — discipline tags */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease, delay: 0.6 }}
-        className="absolute top-24 right-8 md:right-14 flex flex-col items-end gap-2 hidden md:flex"
-      >
-        <span className="font-sans font-bold uppercase tracking-[0.28em] text-[10px] text-white/30">
-          Outdoor
-        </span>
-      </motion.div>
+      {/* Main content — top to bottom flow */}
+      <div className="relative z-10 h-full flex flex-col px-8 md:px-14">
 
-      {/* Logo image — part of the hero */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease, delay: 0.05 }}
-        className="absolute top-20 md:top-24 left-8 md:left-14 z-10"
-      >
-        <img
-          src="/sinchi-logo.png"
-          alt="SINCHI®"
-          className="h-24 md:h-40 lg:h-52 w-auto"
-        />
-      </motion.div>
-
-      {/* Main content — bottom-left anchored */}
-      <div className="relative z-10 h-full flex flex-col justify-end pb-44 md:pb-24 px-8 md:px-14">
-
-        {/* Label strip */}
-        <motion.div
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, ease, delay: 0.1 }}
-          className="flex items-center gap-4 mb-5 md:mb-8"
-        >
-          <span className="block w-8 h-[2px] bg-[#FFE000]" />
-          <span className="font-sans font-bold uppercase tracking-[0.28em] text-[#FFE000] text-[10px]">
-            Fotografía Deportiva
-          </span>
-        </motion.div>
-
-        {/* Headline — smaller, less protagonist */}
-        <div className="overflow-hidden">
-          <motion.h1
-            className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
-            style={{ fontSize: "clamp(40px, 7vw, 110px)" }}
+        {/* Top: logo + headline */}
+        <div className="pt-20 md:pt-24">
+          {/* Logo */}
+          <motion.div
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease, delay: 0.05 }}
           >
-            <motion.span
-              initial={{ y: "110%" }}
-              animate={{ y: "0%" }}
-              transition={{ duration: 0.75, ease, delay: 0.2 }}
-              className="block text-white"
+            <img
+              src="/sinchi-logo.png"
+              alt="SINCHI®"
+              className="h-36 md:h-60 lg:h-80 w-auto"
+            />
+          </motion.div>
+
+          {/* Headline — right below logo */}
+          <div className="overflow-hidden mt-3 md:mt-4">
+            <motion.h1
+              className="font-display font-extrabold italic leading-[0.85] tracking-[-0.02em]"
+              style={{ fontSize: "clamp(36px, 6vw, 96px)" }}
             >
-              MIRADA
-            </motion.span>
-            <motion.span
-              initial={{ y: "110%" }}
-              animate={{ y: "0%" }}
-              transition={{ duration: 0.75, ease, delay: 0.32 }}
-              className="block text-[#FFE000]"
-            >
-              PODEROSA.
-            </motion.span>
-          </motion.h1>
+              <motion.span
+                initial={{ y: "110%" }}
+                animate={{ y: "0%" }}
+                transition={{ duration: 0.75, ease, delay: 0.2 }}
+                className="block text-white"
+              >
+                MIRADA
+              </motion.span>
+              <motion.span
+                initial={{ y: "110%" }}
+                animate={{ y: "0%" }}
+                transition={{ duration: 0.75, ease, delay: 0.32 }}
+                className="block text-[#FFE000]"
+              >
+                PODEROSA.
+              </motion.span>
+            </motion.h1>
+          </div>
+
+          {/* Slogan */}
+          <motion.p
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease, delay: 0.5 }}
+            className="mt-3 md:mt-4 font-display italic text-white/60"
+            style={{ fontSize: "clamp(15px, 1.6vw, 22px)" }}
+          >
+            Donde tu esfuerzo se vuelve imagen.
+          </motion.p>
         </div>
 
-        {/* Slogan */}
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease, delay: 0.5 }}
-          className="mt-4 md:mt-6 font-display italic text-white/70"
-          style={{ fontSize: "clamp(16px, 1.8vw, 24px)" }}
-        >
-          Donde tu esfuerzo se vuelve imagen.
-        </motion.p>
-
-        {/* Bottom row */}
+        {/* Bottom: description + CTA + stats */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease, delay: 0.6 }}
-          className="mt-7 md:mt-10 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
+          className="mt-auto pb-14 md:pb-20 flex flex-col md:flex-row md:items-end gap-6 md:gap-20"
         >
           {/* Description + CTA */}
           <div className="max-w-md">
@@ -132,20 +103,20 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
             {!expanded && (
               <button
                 onClick={() => setExpanded(true)}
-                className="mt-1 font-sans font-bold text-[12px] uppercase tracking-[0.18em] text-[#FFE000]/70 hover:text-[#FFE000] transition-colors"
+                className="mt-2 font-sans font-black text-[13px] text-[#FFE000] underline underline-offset-4 hover:no-underline transition-all"
               >
                 Leer más →
               </button>
             )}
             <a
               href="#eventos"
-              className="mt-5 inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-7 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200"
+              className="mt-4 inline-flex items-center gap-3 bg-[#FFE000] text-[#1A1A1A] px-7 py-3.5 font-sans font-black uppercase tracking-[0.18em] text-[11px] hover:bg-[#D4BB00] transition-colors duration-200"
             >
               Ver eventos ↗
             </a>
           </div>
 
-          {/* Stats — pushed right on desktop, hidden on mobile */}
+          {/* Stats */}
           <div className="hidden md:flex items-end gap-10 md:ml-auto">
             <div className="text-left">
               <span className="block font-display font-extrabold italic leading-none text-white"
