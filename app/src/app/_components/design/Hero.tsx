@@ -41,7 +41,7 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           <img
             src="/sinchi-logo.png"
             alt="SINCHI®"
-            className="h-40 md:h-64 lg:h-[28rem] w-auto"
+            className="w-[340px] md:w-[480px] lg:w-[600px] h-auto"
           />
         </motion.div>
 
