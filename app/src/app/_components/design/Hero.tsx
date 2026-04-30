@@ -173,8 +173,6 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
           ))}
         </div>
       </motion.a>
-
-      </motion.a>
     </section>
   );
 }
