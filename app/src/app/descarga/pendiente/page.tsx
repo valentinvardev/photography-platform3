@@ -71,7 +71,12 @@ function PendingContent() {
           <span aria-hidden>←</span>
           Volver al sitio
         </Link>
-        <span className="font-display font-black italic text-[18px] text-[color:var(--color-brand)]">SINCHI®</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/sinchi-cropped.png"
+          alt="SINCHI®"
+          style={{ width: 120, filter: "brightness(0) saturate(1) invert(93%) sepia(60%) saturate(800%) hue-rotate(345deg) brightness(103%)" }}
+        />
         <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-paper)]/40">
           AR · {time}
         </span>
