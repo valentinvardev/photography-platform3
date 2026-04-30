@@ -205,9 +205,7 @@ export function IosDelivery({ photos, buyerName, collectionTitle, bibNumber }: P
               ¡Listo!
             </h1>
             <p className="font-sans text-[18px] text-[color:var(--color-ink)]/70 leading-relaxed">
-              {savedCount === photos.length
-                ? `Tus ${photos.length} fotos están guardadas en tu galería.`
-                : `${savedCount} de ${photos.length} fotos guardadas en tu galería.`}
+              Tus {photos.length} fotos están guardadas en tu galería.
             </p>
             <p className="mt-3 font-sans text-[15px] text-[color:var(--color-ink)]/40">
               Abrí la app Fotos para verlas.
