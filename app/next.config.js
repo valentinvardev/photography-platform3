@@ -7,6 +7,7 @@ import "./src/env.js";
 /** @type {import("next").NextConfig} */
 const config = {
   devIndicators: false,
+  outputFileTracingRoot: new URL("..", import.meta.url).pathname,
   serverExternalPackages: ["ffmpeg-static", "fluent-ffmpeg"],
   webpack(config, { isServer }) {
     if (isServer) {

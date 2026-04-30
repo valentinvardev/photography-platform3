@@ -144,7 +144,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
   const [isDragging, setIsDragging] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const bulkAdd = api.photo.bulkAdd.useMutation({ onSuccess: () => window.location.reload() });
+  const bulkAdd = api.photo.bulkAdd.useMutation();
   const getS3UploadUrl = api.photo.getS3UploadUrl.useMutation();
   const logError = api.settings.logUploadError.useMutation();
 
@@ -251,7 +251,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
       const chunkUploaded = results.filter((r): r is UploadResult => r !== null);
       if (chunkUploaded.length === 0) continue;
 
-      void bulkAdd.mutateAsync({
+      const result = await bulkAdd.mutateAsync({
         collectionId,
         photos: chunkUploaded.map(({ storageKey, filename, mimeType, fileSize }) => ({
           storageKey,
@@ -259,17 +259,22 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
           mimeType,
           fileSize,
         })),
-      }).then((result) => {
-        if (!result?.ids) return;
+      });
+
+      if (result?.ids) {
         for (let j = 0; j < result.ids.length; j++) {
           const photoId = result.ids[j];
           const uploaded = chunkUploaded[j];
-          // Only poll OCR for images — videos don't have bib numbers
           if (photoId && uploaded?.entryId && !uploaded.isVideo) {
             pendingPolls.push({ entryId: uploaded.entryId, photoId });
           }
         }
-      });
+      }
+    }
+
+    if (pendingPolls.length === 0) {
+      window.location.reload();
+      return;
     }
 
     await new Promise((r) => setTimeout(r, 2_000));
