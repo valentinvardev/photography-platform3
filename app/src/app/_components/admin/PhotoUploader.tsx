@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { StorageBar } from "./StorageBar";
 
@@ -30,8 +29,6 @@ type FileEntry = {
 
 const ROW_HEIGHT = 60;
 const VISIBLE_ROWS = 4;
-const POLL_INTERVAL_MS = 4_000;
-const POLL_MAX_ATTEMPTS = 30;
 const UPLOAD_CONCURRENCY = 10;
 
 // ── Status indicator ──────────────────────────────────────────────────────────
@@ -137,7 +134,6 @@ function FileRow({ entry }: { entry: FileEntry }) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function PhotoUploader({ collectionId }: { collectionId: string }) {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -150,32 +146,6 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
 
   const updateEntry = useCallback((id: string, patch: Partial<FileEntry>) =>
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))), []);
-
-  const pollBib = useCallback(async (entryId: string, photoId: string) => {
-    updateEntry(entryId, { ocrStatus: "processing" });
-    for (let attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      try {
-        const res = await fetch(`/api/ocr-status?photoId=${photoId}`);
-        if (!res.ok) continue;
-        const data = await res.json() as { bib: string | null };
-        if (data.bib) {
-          updateEntry(entryId, { ocrStatus: "found", bib: data.bib });
-          window.location.reload();
-          return;
-        }
-      } catch {
-        // keep polling
-      }
-    }
-    updateEntry(entryId, { ocrStatus: "not-found" });
-    window.location.reload();
-  }, [updateEntry, router]);
-
-  const startOcrPolling = useCallback((entryId: string, photoId: string) => {
-    updateEntry(entryId, { photoId, ocrStatus: "processing" });
-    void pollBib(entryId, photoId);
-  }, [updateEntry, pollBib]);
 
   const handleFiles = async (files: FileList) => {
     if (!files.length) return;
@@ -211,7 +181,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
       setTimeout(() => updateEntry(id, { visible: true }), i * 60);
     }
 
-    type UploadResult = { storageKey: string; filename: string; mimeType: string; fileSize: number; entryId: string; isVideo: boolean };
+    type UploadResult = { storageKey: string; filename: string; mimeType: string; fileSize: number; isVideo: boolean };
 
     const uploadOne = async (entry: FileEntry): Promise<UploadResult | null> => {
       updateEntry(entry.id, { status: "uploading" });
@@ -234,7 +204,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
           return null;
         }
         updateEntry(entry.id, { status: "done" });
-        return { storageKey: key, filename: entry.file.name, mimeType: contentType, fileSize: entry.file.size, entryId: entry.id, isVideo: entry.isVideo };
+        return { storageKey: key, filename: entry.file.name, mimeType: contentType, fileSize: entry.file.size, isVideo: entry.isVideo };
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Error de red.";
         updateEntry(entry.id, { status: "error", errorMsg: msg });
@@ -243,45 +213,31 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
       }
     };
 
-    const pendingPolls: { entryId: string; photoId: string }[] = [];
-
     for (let i = 0; i < newEntries.length; i += UPLOAD_CONCURRENCY) {
       const chunk = newEntries.slice(i, i + UPLOAD_CONCURRENCY);
       const results = await Promise.all(chunk.map(uploadOne));
       const chunkUploaded = results.filter((r): r is UploadResult => r !== null);
       if (chunkUploaded.length === 0) continue;
 
-      const result = await bulkAdd.mutateAsync({
-        collectionId,
-        photos: chunkUploaded.map(({ storageKey, filename, mimeType, fileSize }) => ({
-          storageKey,
-          filename,
-          mimeType,
-          fileSize,
-        })),
-      });
-
-      if (result?.ids) {
-        for (let j = 0; j < result.ids.length; j++) {
-          const photoId = result.ids[j];
-          const uploaded = chunkUploaded[j];
-          if (photoId && uploaded?.entryId && !uploaded.isVideo) {
-            pendingPolls.push({ entryId: uploaded.entryId, photoId });
-          }
+      try {
+        await bulkAdd.mutateAsync({
+          collectionId,
+          photos: chunkUploaded.map(({ storageKey, filename, mimeType, fileSize }) => ({
+            storageKey,
+            filename,
+            mimeType,
+            fileSize,
+          })),
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Error registrando fotos en la base de datos";
+        for (const u of chunkUploaded) {
+          logError.mutate({ filename: u.filename, error: msg, collectionId });
         }
       }
     }
 
-    if (pendingPolls.length === 0) {
-      window.location.reload();
-      return;
-    }
-
-    await new Promise((r) => setTimeout(r, 2_000));
-    for (let i = 0; i < pendingPolls.length; i++) {
-      const { entryId, photoId } = pendingPolls[i]!;
-      setTimeout(() => startOcrPolling(entryId, photoId), i * 400);
-    }
+    window.location.reload();
   };
 
   const isUploading = entries.some((e) => e.status === "uploading" || e.status === "pending");
