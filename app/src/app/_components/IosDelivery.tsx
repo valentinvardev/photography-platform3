@@ -53,23 +53,34 @@ export function IosDelivery({ photos, buyerName, collectionTitle, bibNumber }: P
     }
 
     setIsLoading(true);
+    let sheetOpened = false;
     try {
       const res = await fetch(currentPhoto.url);
       const blob = await res.blob();
       const mimeType = blob.type || (currentPhoto.mimeType ?? "image/jpeg");
       const file = new File([blob], currentPhoto.filename, { type: mimeType });
+      sheetOpened = true;
       await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({ files: [file] });
+    } catch {
+      if (!sheetOpened) {
+        // Fetch failed — fall back to long-press instruction
+        setUseLongPress(true);
+        setIsLoading(false);
+        return;
+      }
+      // iOS bug: share rejects with AbortError even after "Guardar foto" is tapped.
+      // Since the sheet opened, treat any rejection as a completed action.
+    } finally {
+      setIsLoading(false);
+    }
 
+    if (sheetOpened) {
       setSavedCount((c) => c + 1);
       setJustSaved(true);
       setTimeout(() => {
         setJustSaved(false);
         advance();
       }, 1200);
-    } catch {
-      // AbortError: user cancelled — just reset silently
-    } finally {
-      setIsLoading(false);
     }
   };
 
