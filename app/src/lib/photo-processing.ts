@@ -91,8 +91,19 @@ export async function runOcr(photoId: string): Promise<{ bib: string | null }> {
   if (!photo) return { bib: null };
   if (photo.bibNumber !== null) return { bib: photo.bibNumber };
 
-  const imageBytes = await downloadBytes(photo.storageKey);
-  if (!imageBytes) { console.error("[OCR] Download failed:", photo.storageKey); return { bib: null }; }
+  const rawBytes = await downloadBytes(photo.storageKey);
+  if (!rawBytes) { console.error("[OCR] Download failed:", photo.storageKey); return { bib: null }; }
+
+  const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
+  let imageBytes: Uint8Array = rawBytes;
+  if (rawBytes.byteLength > REKOGNITION_MAX_BYTES) {
+    const compressed = await sharp(Buffer.from(rawBytes))
+      .resize({ width: 1920, withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    imageBytes = new Uint8Array(compressed);
+    console.log(`[OCR] Compressed ${rawBytes.byteLength} → ${imageBytes.byteLength} bytes for photoId=${photoId}`);
+  }
 
   try {
     const response = await rekognition.send(new DetectTextCommand({ Image: { Bytes: imageBytes } }));
