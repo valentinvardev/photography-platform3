@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
+import { IosDelivery } from "./IosDelivery";
 
 type Photo = { id: string; filename: string; url: string; mimeType?: string | null };
 
@@ -31,6 +32,11 @@ export function PhotoGallery({
   suggestions: _,
 }: Props) {
   void _;
+  const [isIphone, setIsIphone] = useState(false);
+  useEffect(() => {
+    setIsIphone(/iPhone/.test(navigator.userAgent));
+  }, []);
+
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
@@ -123,6 +129,17 @@ export function PhotoGallery({
   };
 
   const currentPhoto = lightboxIdx !== null ? photos[lightboxIdx] : null;
+
+  if (isIphone) {
+    return (
+      <IosDelivery
+        photos={photos}
+        buyerName={buyerName}
+        collectionTitle={collectionTitle}
+        bibNumber={bibNumber}
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[color:var(--color-paper)] text-[color:var(--color-ink)]">
