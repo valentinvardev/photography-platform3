@@ -2,6 +2,16 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { sendPurchaseApprovedEmail } from "~/lib/email";
 
+const LOG_KEY = "upload_error_logs";
+const MAX_LOGS = 200;
+
+type UploadErrorLog = {
+  ts: string;
+  filename: string;
+  error: string;
+  collectionId: string;
+};
+
 export const settingsRouter = createTRPCRouter({
   getMpStatus: protectedProcedure.query(async ({ ctx }) => {
     const setting = await ctx.db.setting.findUnique({
@@ -46,4 +56,30 @@ export const settingsRouter = createTRPCRouter({
       });
       return { ok: true };
     }),
+
+  logUploadError: protectedProcedure
+    .input(z.object({ filename: z.string(), error: z.string(), collectionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db.setting.findUnique({ where: { key: LOG_KEY } });
+      const logs: UploadErrorLog[] = existing?.value ? (JSON.parse(existing.value) as UploadErrorLog[]) : [];
+      const entry: UploadErrorLog = { ts: new Date().toISOString(), ...input };
+      const updated = [entry, ...logs].slice(0, MAX_LOGS);
+      await ctx.db.setting.upsert({
+        where: { key: LOG_KEY },
+        update: { value: JSON.stringify(updated) },
+        create: { key: LOG_KEY, value: JSON.stringify(updated) },
+      });
+      return { ok: true };
+    }),
+
+  getUploadLogs: protectedProcedure.query(async ({ ctx }) => {
+    const setting = await ctx.db.setting.findUnique({ where: { key: LOG_KEY } });
+    if (!setting?.value) return [];
+    return JSON.parse(setting.value) as UploadErrorLog[];
+  }),
+
+  clearUploadLogs: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.setting.deleteMany({ where: { key: LOG_KEY } });
+    return { ok: true };
+  }),
 });

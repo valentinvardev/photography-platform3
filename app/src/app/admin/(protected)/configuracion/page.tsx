@@ -1,5 +1,6 @@
 import { WatermarkSettings } from "~/app/_components/admin/WatermarkSettings";
 import { MercadoPagoConnect } from "~/app/_components/admin/MercadoPagoConnect";
+import { UploadErrorLogs } from "~/app/_components/admin/UploadErrorLogs";
 
 export default function ConfigPage() {
   return (
@@ -36,6 +37,16 @@ export default function ConfigPage() {
             previews — no es un elemento de CSS, no se puede remover con DevTools.
           </p>
           <WatermarkSettings />
+        </section>
+
+        <section className="p-6">
+          <p className="font-sans font-bold text-[13px] uppercase tracking-[0.12em] text-[color:var(--color-ink)] mb-1">
+            Log de errores de subida
+          </p>
+          <p className="font-sans text-[13px] leading-[1.6] text-[color:var(--color-ink)]/60 mb-5">
+            Errores registrados automáticamente al subir fotos. Se guardan los últimos 200.
+          </p>
+          <UploadErrorLogs />
         </section>
       </div>
     </div>

@@ -146,6 +146,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
 
   const bulkAdd = api.photo.bulkAdd.useMutation({ onSuccess: () => window.location.reload() });
   const getS3UploadUrl = api.photo.getS3UploadUrl.useMutation();
+  const logError = api.settings.logUploadError.useMutation();
 
   const updateEntry = useCallback((id: string, patch: Partial<FileEntry>) =>
     setEntries((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e))), []);
@@ -227,7 +228,9 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
           body: entry.file,
         });
         if (!uploadRes.ok) {
-          updateEntry(entry.id, { status: "error", errorMsg: uploadRes.statusText });
+          const msg = uploadRes.statusText || `HTTP ${uploadRes.status}`;
+          updateEntry(entry.id, { status: "error", errorMsg: msg });
+          logError.mutate({ filename: entry.file.name, error: msg, collectionId });
           return null;
         }
         updateEntry(entry.id, { status: "done" });
@@ -235,6 +238,7 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Error de red.";
         updateEntry(entry.id, { status: "error", errorMsg: msg });
+        logError.mutate({ filename: entry.file.name, error: msg, collectionId });
         return null;
       }
     };
@@ -352,22 +356,8 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
               </span>
             )}
             {errorCount > 0 && (
-              <span className="inline-flex items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-safelight)]">
-                  ✕ {errorCount} con error
-                </span>
-                <button
-                  onClick={() => {
-                    const errorLines = entries
-                      .filter((e) => e.status === "error")
-                      .map((e) => `${e.file.name}: ${e.errorMsg ?? "Error desconocido"}`)
-                      .join("\n");
-                    void navigator.clipboard.writeText(errorLines);
-                  }}
-                  className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[color:var(--color-safelight)] text-[color:var(--color-safelight)] px-2 py-0.5 hover:bg-[color:var(--color-safelight)] hover:text-white transition-colors"
-                >
-                  Copiar errores
-                </button>
+              <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-safelight)]">
+                ✕ {errorCount} con error
               </span>
             )}
             {isUploading && (
