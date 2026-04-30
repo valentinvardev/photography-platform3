@@ -147,23 +147,34 @@ export function Hero({ collectionsCount }: { collectionsCount: number }) {
       </div>
 
       {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease, delay: 1 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center gap-3"
+      <motion.a
+        href="#eventos"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease, delay: 1.1 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 cursor-pointer group"
       >
-        <span className="font-sans font-bold uppercase tracking-[0.22em] text-[9px] text-white/30">
+        <span className="font-sans font-bold uppercase tracking-[0.28em] text-[11px] text-white group-hover:text-[#FFE000] transition-colors">
           Deslizá
         </span>
-        <div className="w-[1px] h-10 bg-white/20 relative overflow-hidden">
-          <motion.div
-            className="absolute inset-x-0 top-0 h-full bg-[#FFE000]"
-            animate={{ y: ["0%", "100%"] }}
-            transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.6 }}
-          />
+        {/* Animated chevrons */}
+        <div className="flex flex-col items-center gap-0.5">
+          {[0, 1, 2].map((i) => (
+            <motion.svg
+              key={i}
+              width="22" height="13"
+              viewBox="0 0 22 13"
+              fill="none"
+              animate={{ opacity: [0.2, 1, 0.2], y: [0, 4, 0] }}
+              transition={{ duration: 1.2, ease: "easeInOut", repeat: Infinity, delay: i * 0.18 }}
+            >
+              <path d="M1 1l10 10L21 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </motion.svg>
+          ))}
         </div>
-      </motion.div>
+      </motion.a>
+
+      </motion.a>
     </section>
   );
 }
