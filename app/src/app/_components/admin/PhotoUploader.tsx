@@ -352,8 +352,22 @@ export function PhotoUploader({ collectionId }: { collectionId: string }) {
               </span>
             )}
             {errorCount > 0 && (
-              <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-safelight)]">
-                ✕ {errorCount} con error
+              <span className="inline-flex items-center gap-2">
+                <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-safelight)]">
+                  ✕ {errorCount} con error
+                </span>
+                <button
+                  onClick={() => {
+                    const errorLines = entries
+                      .filter((e) => e.status === "error")
+                      .map((e) => `${e.file.name}: ${e.errorMsg ?? "Error desconocido"}`)
+                      .join("\n");
+                    void navigator.clipboard.writeText(errorLines);
+                  }}
+                  className="font-mono text-[9px] uppercase tracking-[0.12em] border border-[color:var(--color-safelight)] text-[color:var(--color-safelight)] px-2 py-0.5 hover:bg-[color:var(--color-safelight)] hover:text-white transition-colors"
+                >
+                  Copiar errores
+                </button>
               </span>
             )}
             {isUploading && (
