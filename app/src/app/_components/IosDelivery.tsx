@@ -56,7 +56,7 @@ export function IosDelivery({ photos, buyerName, collectionTitle, bibNumber }: P
     try {
       const res = await fetch(currentPhoto.url);
       const blob = await res.blob();
-      const mimeType = blob.type || currentPhoto.mimeType ?? "image/jpeg";
+      const mimeType = blob.type || (currentPhoto.mimeType ?? "image/jpeg");
       const file = new File([blob], currentPhoto.filename, { type: mimeType });
       await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share({ files: [file] });
 
