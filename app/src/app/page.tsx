@@ -75,8 +75,12 @@ export default async function HomePage() {
             Sponsors
           </p>
           <div className="flex items-center justify-center gap-16 md:gap-28 flex-wrap">
-            <img src="/sponsor1.webp" alt="Sponsor" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
-            <img src="/ponchoproject.webp" alt="Poncho Project" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
+            <a href="https://www.wakeupbikes.com" target="_blank" rel="noopener noreferrer">
+              <img src="/sponsor1.webp" alt="Wake Up Bikes" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
+            </a>
+            <a href="https://www.ponchoproject.com.ar" target="_blank" rel="noopener noreferrer">
+              <img src="/ponchoproject.webp" alt="Poncho Project" className="h-12 md:h-16 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity" />
+            </a>
           </div>
         </div>
       </section>
