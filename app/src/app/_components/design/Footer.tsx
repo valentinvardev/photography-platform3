@@ -47,7 +47,7 @@ export function Footer() {
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <a
-                href="https://wa.me/5493515551234"
+                href="https://wa.me/5493513546716"
                 target="_blank"
                 rel="noopener"
                 className="flex items-center gap-2.5 border border-white/10 px-4 py-2.5 hover:border-[#FFE000] hover:text-[#FFE000] transition-colors duration-200 group"
