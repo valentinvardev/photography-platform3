@@ -9,7 +9,7 @@ import { Grain } from "~/app/_components/design/Grain";
 export const metadata: Metadata = {
   title: "SINCHI® — Fotografía Deportiva",
   description: "Mirada poderosa. Fotografía de montaña para MTB, ruta y trail. Encontrá tus fotos por número de dorsal.",
-  icons: [{ rel: "icon", url: "/sinchi-cropped.png" }],
+  icons: [{ rel: "icon", url: "/sinchi-icon.png" }],
 };
 
 const barlow = Barlow({

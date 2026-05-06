@@ -181,8 +181,14 @@ export async function runWatermark(photoId: string): Promise<{ previewKey: strin
 
   try {
     const supabase = getAdminClient();
-    const composite = await buildWatermarkComposite(w, h);
-    const watermarked = await sharp(buffer).composite([composite]).jpeg({ quality: 78 }).toBuffer();
+    const PREVIEW_MAX_WIDTH = 1600;
+    const PREVIEW_QUALITY = 65;
+    const resizedBuffer = w > PREVIEW_MAX_WIDTH
+      ? await sharp(buffer).resize({ width: PREVIEW_MAX_WIDTH, withoutEnlargement: true }).toBuffer()
+      : buffer;
+    const resizedMeta = w > PREVIEW_MAX_WIDTH ? await sharp(resizedBuffer).metadata() : { width: w, height: h };
+    const composite = await buildWatermarkComposite(resizedMeta.width ?? w, resizedMeta.height ?? h);
+    const watermarked = await sharp(resizedBuffer).composite([composite]).jpeg({ quality: PREVIEW_QUALITY, mozjpeg: true }).toBuffer();
 
     // Delete previous preview from the correct backend
     if (photo.previewKey) {
