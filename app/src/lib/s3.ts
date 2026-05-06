@@ -46,11 +46,13 @@ export async function createS3DownloadUrl(
   key: string,
   expiresIn = 3600,
   responseContentType?: string,
+  responseContentDisposition?: string,
 ): Promise<string> {
   const command = new GetObjectCommand({
     Bucket: S3_BUCKET,
     Key: key,
     ...(responseContentType ? { ResponseContentType: responseContentType } : {}),
+    ...(responseContentDisposition ? { ResponseContentDisposition: responseContentDisposition } : {}),
   });
   return getSignedUrl(s3, command, { expiresIn });
 }

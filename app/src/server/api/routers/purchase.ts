@@ -178,8 +178,10 @@ export const purchaseRouter = createTRPCRouter({
 
       const photoUrls = await Promise.all(
         photos.map(async (photo) => {
+          const safeName = photo.filename.replace(/"/g, "").replace(/[\r\n]/g, "");
+          const disposition = `attachment; filename="${safeName}"`;
           const url = isS3Key(photo.storageKey)
-            ? await createS3DownloadUrl(photo.storageKey, 3600 * 24)
+            ? await createS3DownloadUrl(photo.storageKey, 3600 * 24, undefined, disposition)
             : await createSignedUrl(photo.storageKey, 3600 * 24);
           return { id: photo.id, filename: photo.filename, url };
         }),
