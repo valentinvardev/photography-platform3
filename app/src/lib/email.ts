@@ -44,11 +44,16 @@ function purchaseApprovedHtml({
       <td align="center">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
 
-          <!-- Yellow header band with logo -->
+          <!-- Dark header band with logo -->
           <tr>
-            <td style="background:#FFE600;padding:28px 36px;">
+            <td style="background:#111111;padding:36px 36px 28px;">
               <img src="${BASE_URL}/sinchi-cropped.png" alt="SINCHI®" width="140" style="display:block;border:0;" />
             </td>
+          </tr>
+
+          <!-- Yellow accent strip -->
+          <tr>
+            <td style="background:#FFE600;height:4px;line-height:4px;font-size:0;">&nbsp;</td>
           </tr>
 
           <!-- Dark content area -->
