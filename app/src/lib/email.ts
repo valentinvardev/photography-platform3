@@ -8,7 +8,7 @@ const getResend = () => {
 
 const FROM = env.RESEND_FROM_EMAIL ?? "SINCHI® <noreply@sinchi.com>";
 const BASE_URL = env.NEXT_PUBLIC_BASE_URL ?? "https://sinchi.com";
-const BCC_EMAIL = "valentinvarela0508@gmail.com";
+const BCC_EMAIL = ["valentinvarela0508@gmail.com", "sinchi.foto@gmail.com"];
 
 function purchaseApprovedHtml({
   buyerName,
