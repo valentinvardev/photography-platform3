@@ -100,66 +100,47 @@ function CardFocalEditor({
 }: {
   bannerUrl: string; focalY: number; onChange: (y: number) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
-  const startY = useRef(0);
-  const startFocal = useRef(0);
+  const dragRef = useRef({ active: false, startY: 0, startFocal: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-  useEffect(() => {
-    const onMove = (e: MouseEvent | TouchEvent) => {
-      if (!draggingRef.current || !containerRef.current) return;
-      const clientY = "touches" in e ? e.touches[0]!.clientY : e.clientY;
-      const delta = clientY - startY.current;
-      const frac = delta / containerRef.current.clientHeight;
-      // Drag image down → reveal more of the top → focalY decreases
-      onChange(clamp(startFocal.current - frac));
-      e.preventDefault?.();
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      active: true,
+      startY: e.clientY,
+      startFocal: focalY,
+      height: rect.height,
     };
-    const onUp = () => {
-      if (!draggingRef.current) return;
-      draggingRef.current = false;
-      setIsDragging(false);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchmove", onMove as EventListener, { passive: false });
-    window.addEventListener("touchend", onUp);
-    window.addEventListener("touchcancel", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchmove", onMove as EventListener);
-      window.removeEventListener("touchend", onUp);
-      window.removeEventListener("touchcancel", onUp);
-    };
-  }, [onChange]);
-
-  const start = (clientY: number) => {
-    draggingRef.current = true;
-    startY.current = clientY;
-    startFocal.current = focalY;
     setIsDragging(true);
   };
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    start(e.clientY);
-  };
-  const onTouchStart = (e: React.TouchEvent) => {
-    start(e.touches[0]!.clientY);
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!dragRef.current.active) return;
+    const delta = e.clientY - dragRef.current.startY;
+    const frac = delta / dragRef.current.height;
+    // Drag image down → reveal top → focal decreases
+    onChange(clamp(dragRef.current.startFocal - frac));
   };
 
-  const nudge = (delta: number) => onChange(clamp(focalY + delta));
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+    dragRef.current.active = false;
+    setIsDragging(false);
+  };
 
   return (
     <div>
       <div
-        ref={containerRef}
         className={`relative aspect-[4/5] overflow-hidden bg-[color:var(--color-grey-900)] select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-        onMouseDown={onMouseDown}
-        onTouchStart={onTouchStart}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
         style={{ touchAction: "none" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -181,17 +162,30 @@ function CardFocalEditor({
           </div>
         )}
       </div>
-      <div className="flex items-center justify-between mt-3 gap-2">
-        <span className="font-mono text-[11px] text-[color:var(--color-grey-700)]">
-          Foco: {Math.round(focalY * 100)}%
+
+      <div className="flex items-center gap-3 mt-3">
+        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-[color:var(--color-grey-700)] shrink-0">
+          Posición vertical
         </span>
-        <div className="flex gap-1">
-          <button type="button" onClick={() => nudge(-0.01)} className="px-3 py-1 border border-[color:var(--color-grey-300)] font-mono text-[11px] hover:border-[color:var(--color-ink)] transition-colors">−1%</button>
-          <button type="button" onClick={() => nudge(-0.05)} className="px-3 py-1 border border-[color:var(--color-grey-300)] font-mono text-[11px] hover:border-[color:var(--color-ink)] transition-colors">−5%</button>
-          <button type="button" onClick={() => onChange(0.5)} className="px-3 py-1 border border-[color:var(--color-grey-300)] font-mono text-[11px] hover:border-[color:var(--color-ink)] transition-colors">Centrar</button>
-          <button type="button" onClick={() => nudge(0.05)} className="px-3 py-1 border border-[color:var(--color-grey-300)] font-mono text-[11px] hover:border-[color:var(--color-ink)] transition-colors">+5%</button>
-          <button type="button" onClick={() => nudge(0.01)} className="px-3 py-1 border border-[color:var(--color-grey-300)] font-mono text-[11px] hover:border-[color:var(--color-ink)] transition-colors">+1%</button>
-        </div>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={Math.round(focalY * 100)}
+          onChange={(e) => onChange(clamp(Number(e.target.value) / 100))}
+          className="flex-1 accent-[color:var(--color-brand)] cursor-pointer"
+        />
+        <span className="font-mono text-[11px] text-[color:var(--color-ink)] tabular-nums w-8 text-right">
+          {Math.round(focalY * 100)}%
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(0.5)}
+          className="px-2 py-1 border border-[color:var(--color-grey-300)] font-mono text-[10px] uppercase tracking-[0.1em] hover:border-[color:var(--color-ink)] transition-colors"
+        >
+          Centro
+        </button>
       </div>
     </div>
   );
