@@ -101,44 +101,55 @@ function CardFocalEditor({
   bannerUrl: string; focalY: number; onChange: (y: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+  const draggingRef = useRef(false);
   const startY = useRef(0);
   const startFocal = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    dragging.current = true;
-    startY.current = e.clientY;
-    startFocal.current = focalY;
-    e.preventDefault();
-  };
-  const onTouchStart = (e: React.TouchEvent) => {
-    dragging.current = true;
-    startY.current = e.touches[0]!.clientY;
-    startFocal.current = focalY;
-  };
-
   useEffect(() => {
-    const move = (clientY: number) => {
-      if (!dragging.current || !containerRef.current) return;
+    const onMove = (e: MouseEvent | TouchEvent) => {
+      if (!draggingRef.current || !containerRef.current) return;
+      const clientY = "touches" in e ? e.touches[0]!.clientY : e.clientY;
       const delta = clientY - startY.current;
       const frac = delta / containerRef.current.clientHeight;
-      onChange(clamp(startFocal.current + frac));
+      // Drag image down → reveal more of the top → focalY decreases
+      onChange(clamp(startFocal.current - frac));
+      e.preventDefault?.();
     };
-    const onMove = (e: MouseEvent) => move(e.clientY);
-    const onTouchMove = (e: TouchEvent) => move(e.touches[0]!.clientY);
-    const onUp = () => { dragging.current = false; };
+    const onUp = () => {
+      if (!draggingRef.current) return;
+      draggingRef.current = false;
+      setIsDragging(false);
+    };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchmove", onMove as EventListener, { passive: false });
     window.addEventListener("touchend", onUp);
+    window.addEventListener("touchcancel", onUp);
     return () => {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchmove", onMove as EventListener);
       window.removeEventListener("touchend", onUp);
+      window.removeEventListener("touchcancel", onUp);
     };
   }, [onChange]);
+
+  const start = (clientY: number) => {
+    draggingRef.current = true;
+    startY.current = clientY;
+    startFocal.current = focalY;
+    setIsDragging(true);
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    start(e.clientY);
+  };
+  const onTouchStart = (e: React.TouchEvent) => {
+    start(e.touches[0]!.clientY);
+  };
 
   const nudge = (delta: number) => onChange(clamp(focalY + delta));
 
@@ -146,9 +157,10 @@ function CardFocalEditor({
     <div>
       <div
         ref={containerRef}
-        className="relative aspect-[4/5] overflow-hidden bg-[color:var(--color-grey-900)] cursor-ns-resize select-none"
+        className={`relative aspect-[4/5] overflow-hidden bg-[color:var(--color-grey-900)] select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
+        style={{ touchAction: "none" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -158,14 +170,16 @@ function CardFocalEditor({
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           style={{ objectPosition: `center ${Math.round(focalY * 100)}%` }}
         />
-        <div className="absolute inset-0 flex items-end justify-center pb-3 pointer-events-none">
-          <div className="px-3 py-1.5 bg-black/60 text-white font-mono text-[10px] uppercase tracking-[0.18em] flex items-center gap-2">
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            Arrastrá para reencuadrar
+        {!isDragging && (
+          <div className="absolute inset-0 flex items-end justify-center pb-3 pointer-events-none">
+            <div className="px-3 py-1.5 bg-black/60 text-white font-mono text-[10px] uppercase tracking-[0.18em] flex items-center gap-2">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              Click + arrastrar para reencuadrar
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="flex items-center justify-between mt-3 gap-2">
         <span className="font-mono text-[11px] text-[color:var(--color-grey-700)]">
