@@ -100,47 +100,54 @@ function CardFocalEditor({
 }: {
   bannerUrl: string; focalY: number; onChange: (y: number) => void;
 }) {
-  const dragRef = useRef({ active: false, startY: 0, startFocal: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const focalRef = useRef(focalY);
+  focalRef.current = focalY;
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
 
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const rect = e.currentTarget.getBoundingClientRect();
-    e.currentTarget.setPointerCapture(e.pointerId);
-    dragRef.current = {
-      active: true,
-      startY: e.clientY,
-      startFocal: focalY,
-      height: rect.height,
-    };
+    const target = e.currentTarget;
+    const rect = target.getBoundingClientRect();
+    const startY = e.clientY;
+    const startFocal = focalRef.current;
+    const height = rect.height;
+    const pointerId = e.pointerId;
+
     setIsDragging(true);
-  };
+    try { target.setPointerCapture(pointerId); } catch { /* ignore */ }
 
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current.active) return;
-    const delta = e.clientY - dragRef.current.startY;
-    const frac = delta / dragRef.current.height;
-    // Drag image down → reveal top → focal decreases
-    onChange(clamp(dragRef.current.startFocal - frac));
-  };
+    const onMove = (ev: PointerEvent) => {
+      const delta = ev.clientY - startY;
+      const frac = delta / height;
+      // Drag image down → reveal top → focal decreases
+      onChangeRef.current(clamp(startFocal - frac));
+    };
 
-  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-    dragRef.current.active = false;
-    setIsDragging(false);
+    const onEnd = () => {
+      setIsDragging(false);
+      target.removeEventListener("pointermove", onMove);
+      target.removeEventListener("pointerup", onEnd);
+      target.removeEventListener("pointercancel", onEnd);
+      target.removeEventListener("lostpointercapture", onEnd);
+      try {
+        if (target.hasPointerCapture(pointerId)) target.releasePointerCapture(pointerId);
+      } catch { /* ignore */ }
+    };
+
+    target.addEventListener("pointermove", onMove);
+    target.addEventListener("pointerup", onEnd);
+    target.addEventListener("pointercancel", onEnd);
+    target.addEventListener("lostpointercapture", onEnd);
   };
 
   return (
     <div>
       <div
         className={`relative aspect-[4/5] overflow-hidden bg-[color:var(--color-grey-900)] select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"}`}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
+        onPointerDown={handlePointerDown}
         style={{ touchAction: "none" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
