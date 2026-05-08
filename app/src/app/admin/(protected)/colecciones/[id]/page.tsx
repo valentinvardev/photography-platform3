@@ -121,6 +121,12 @@ export default async function EditCollectionPage({
 
           <div className="flex items-center gap-2 flex-wrap shrink-0">
             <Link
+              href={`/admin/colecciones/${collection.id}/editar`}
+              className="px-3 py-1.5 border border-[color:var(--color-ink)] bg-[color:var(--color-ink)] text-[color:var(--color-paper)] font-mono text-[12px] uppercase tracking-[0.14em] hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors"
+            >
+              ✎ Editar
+            </Link>
+            <Link
               href={`/colecciones/${collection.slug}`}
               target="_blank"
               className="px-3 py-1.5 border border-[color:var(--color-grey-300)] font-mono text-[12px] uppercase tracking-[0.14em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
