@@ -6,6 +6,10 @@ import {
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import {
+  CloudFrontClient,
+  CreateInvalidationCommand,
+} from "@aws-sdk/client-cloudfront";
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION ?? "us-east-2",
@@ -14,6 +18,16 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
+
+const cfClient = process.env.CLOUDFRONT_DISTRIBUTION_ID
+  ? new CloudFrontClient({
+      region: "us-east-1",
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    })
+  : null;
 
 export const S3_BUCKET = process.env.AWS_S3_BUCKET ?? "mediaseller-photos";
 
@@ -108,4 +122,34 @@ export function isS3Key(storageKey: string): boolean {
     storageKey.startsWith("uploads/") ||
     storageKey.startsWith("previews/")
   );
+}
+
+/** Returns a CloudFront URL for the given S3 key, or null if CF is not configured. */
+export function getCFUrl(key: string): string | null {
+  const domain = process.env.CLOUDFRONT_DOMAIN;
+  if (!domain) return null;
+  if (key.startsWith("http")) return key;
+  return `https://${domain}/${key}`;
+}
+
+/**
+ * Invalidates CloudFront cache for the given paths.
+ * Paths must start with "/". Use wildcard: ["/prefix/folder/*"].
+ * No-op if CF is not configured or paths is empty.
+ */
+export async function createCFInvalidation(paths: string[]): Promise<void> {
+  if (!cfClient || !process.env.CLOUDFRONT_DISTRIBUTION_ID || paths.length === 0) return;
+  try {
+    await cfClient.send(
+      new CreateInvalidationCommand({
+        DistributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID,
+        InvalidationBatch: {
+          CallerReference: Date.now().toString(),
+          Paths: { Quantity: paths.length, Items: paths },
+        },
+      }),
+    );
+  } catch (err) {
+    console.error("[cloudfront] invalidation failed:", err);
+  }
 }

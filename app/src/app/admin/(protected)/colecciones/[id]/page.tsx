@@ -8,8 +8,9 @@ import { FaceReindexButton } from "~/app/_components/admin/FaceReindexButton";
 import { WatermarkAllButton } from "~/app/_components/admin/WatermarkAllButton";
 import { PricingPanel } from "~/app/_components/admin/PricingPanel";
 import { parseDiscountCodes } from "~/lib/pricing";
+import { isS3Key } from "~/lib/s3";
+import { resolveMediaUrl } from "~/lib/media";
 import { createSignedUrl } from "~/lib/supabase/admin";
-import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
 
 const PAGE_SIZE = 48;
 
@@ -53,11 +54,9 @@ export default async function EditCollectionPage({
       const isVideo = /\.(mp4|mov|webm|mkv|m4v)$/i.test(p.filename) || !!p.mimeType?.startsWith("video/");
       const key = isVideo && p.previewKey ? p.previewKey : p.storageKey;
       const ct = isVideo && p.previewKey ? "video/mp4" : (p.mimeType ?? (isVideo ? "video/mp4" : undefined));
-      const url = key.startsWith("http")
-        ? key
-        : isS3Key(key)
-        ? await createS3DownloadUrl(key, 3600, ct)
-        : await createSignedUrl(key, 3600);
+      const url = isS3Key(key)
+        ? await resolveMediaUrl(key, { contentType: ct ?? undefined })
+        : ((await createSignedUrl(key, 3600)) ?? key);
       return { ...p, price: p.price !== null ? Number(p.price) : null, url };
     }),
   );

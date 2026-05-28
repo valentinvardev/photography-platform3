@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Prisma } from "../../../../generated/prisma";
-import { createS3DownloadUrl, s3Key } from "~/lib/s3";
+import { s3Key } from "~/lib/s3";
+import { resolveMediaUrl } from "~/lib/media";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -10,7 +11,7 @@ import {
 async function resolveUrl(url: string | null | undefined): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith("http")) return url;
-  return createS3DownloadUrl(s3Key(url), 7200);
+  return resolveMediaUrl(s3Key(url), { expiresIn: 7200 });
 }
 
 const resolveCover = resolveUrl;

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "~/server/auth";
-import { createS3DownloadUrl, putS3Object, deleteS3Objects, s3Key, s3ObjectExists } from "~/lib/s3";
+import { putS3Object, deleteS3Objects, s3Key, s3ObjectExists } from "~/lib/s3";
+import { resolveMediaUrl } from "~/lib/media";
 import { WATERMARK_KEY } from "~/lib/watermark";
 
 export async function GET() {
@@ -9,7 +10,7 @@ export async function GET() {
 
   const key = s3Key(WATERMARK_KEY);
   if (!(await s3ObjectExists(key))) return NextResponse.json({ url: null });
-  const url = await createS3DownloadUrl(key, 3600);
+  const url = await resolveMediaUrl(key);
   return NextResponse.json({ url });
 }
 
