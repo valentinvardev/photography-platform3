@@ -33,7 +33,7 @@ export function Footer() {
             <span className="text-white/35">merece una foto.</span>
           </p>
           <p className="mt-5 font-sans text-[14px] leading-[1.7] text-white/40 max-w-xs">
-            Fotografía de alto rendimiento para eventos de MTB, ruta y trail. Encontrá tus fotos por dorsal o por cara.
+            Fotografía especializada en eventos outdoor y deportes de acción. Encontrá tus fotos por dorsal o reconocimiento facial.
           </p>
         </div>
 

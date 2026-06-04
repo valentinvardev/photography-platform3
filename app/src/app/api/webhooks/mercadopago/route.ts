@@ -2,6 +2,7 @@ import { createHmac } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "~/server/db";
 import { sendPurchaseApprovedEmail } from "~/lib/email";
+import { getPurchasePhotoThumbs } from "~/lib/purchase-photos";
 
 function verifyWebhookSignature(request: NextRequest, rawBody: string): boolean {
   const { env } = require("~/env") as { env: { MERCADOPAGO_WEBHOOK_SECRET?: string } };
@@ -86,6 +87,7 @@ async function processPayment(paymentId: string, mpAccessToken: string) {
     if (!purchase?.downloadToken) return;
 
     const photoCount = (JSON.parse(purchase.photoIds as string) as string[]).length;
+    const photoThumbs = await getPurchasePhotoThumbs(purchase.id, 6);
     void sendPurchaseApprovedEmail({
       to: purchase.buyerEmail,
       buyerName: purchase.buyerName,
@@ -93,6 +95,7 @@ async function processPayment(paymentId: string, mpAccessToken: string) {
       collectionTitle: purchase.collection.title,
       downloadToken: purchase.downloadToken,
       photoCount,
+      photoThumbs,
     });
   }
 }

@@ -4,6 +4,7 @@ import { env } from "~/env";
 import { sendPurchaseApprovedEmail } from "~/lib/email";
 import { createSignedUrl } from "~/lib/supabase/admin";
 import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
+import { getPurchasePhotoThumbs } from "~/lib/purchase-photos";
 import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
 import {
   createTRPCRouter,
@@ -292,7 +293,20 @@ export const purchaseRouter = createTRPCRouter({
           orderBy: { createdAt: "desc" },
           skip: (input.page - 1) * input.limit,
           take: input.limit,
-          include: { collection: { select: { title: true } } },
+          select: {
+            id: true,
+            buyerEmail: true,
+            buyerName: true,
+            buyerLastName: true,
+            buyerPhone: true,
+            bibNumber: true,
+            status: true,
+            amountPaid: true,
+            createdAt: true,
+            downloadToken: true,
+            photoIds: true,
+            collection: { select: { title: true } },
+          },
         }),
         ctx.db.purchase.count({ where }),
       ]);
@@ -309,6 +323,7 @@ export const purchaseRouter = createTRPCRouter({
         include: { collection: { select: { title: true } } },
       });
       const photoCount = (JSON.parse(updated.photoIds as string) as string[]).length;
+      const photoThumbs = await getPurchasePhotoThumbs(updated.id, 6);
       void sendPurchaseApprovedEmail({
         to: updated.buyerEmail,
         buyerName: updated.buyerName,
@@ -316,7 +331,106 @@ export const purchaseRouter = createTRPCRouter({
         collectionTitle: updated.collection.title,
         downloadToken: token,
         photoCount,
+        photoThumbs,
       });
       return updated;
+    }),
+
+  adminGetPhotos: protectedProcedure
+    .input(z.object({ purchaseId: z.string() }))
+    .query(async ({ input }) => {
+      return getPurchasePhotoThumbs(input.purchaseId, 500);
+    }),
+
+  adminCustomers: protectedProcedure
+    .input(
+      z.object({
+        q: z.string().optional(),
+        page: z.number().default(1),
+        limit: z.number().default(50),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const where = {
+        buyerEmail: { not: "public@system" },
+        ...(input.q
+          ? {
+              OR: [
+                { buyerEmail: { contains: input.q, mode: "insensitive" as const } },
+                { buyerName: { contains: input.q, mode: "insensitive" as const } },
+                { buyerLastName: { contains: input.q, mode: "insensitive" as const } },
+                { buyerPhone: { contains: input.q } },
+              ],
+            }
+          : {}),
+      };
+
+      const grouped = await ctx.db.purchase.groupBy({
+        by: ["buyerEmail"],
+        where,
+        _count: { _all: true },
+        _sum: { amountPaid: true },
+        _max: { createdAt: true },
+        orderBy: { _max: { createdAt: "desc" } },
+        skip: (input.page - 1) * input.limit,
+        take: input.limit,
+      });
+
+      const totalEmails = await ctx.db.purchase.groupBy({
+        by: ["buyerEmail"],
+        where,
+        _count: { _all: true },
+      });
+
+      const emails = grouped.map((g) => g.buyerEmail);
+      const latestByEmail = await ctx.db.purchase.findMany({
+        where: { buyerEmail: { in: emails } },
+        orderBy: { createdAt: "desc" },
+        select: {
+          buyerEmail: true,
+          buyerName: true,
+          buyerLastName: true,
+          buyerPhone: true,
+          status: true,
+        },
+      });
+
+      const meta = new Map<string, { name: string | null; lastName: string | null; phone: string | null; approved: number }>();
+      for (const p of latestByEmail) {
+        const existing = meta.get(p.buyerEmail);
+        if (!existing) {
+          meta.set(p.buyerEmail, {
+            name: p.buyerName,
+            lastName: p.buyerLastName,
+            phone: p.buyerPhone,
+            approved: p.status === "APPROVED" ? 1 : 0,
+          });
+        } else {
+          if (!existing.name && p.buyerName) existing.name = p.buyerName;
+          if (!existing.lastName && p.buyerLastName) existing.lastName = p.buyerLastName;
+          if (!existing.phone && p.buyerPhone) existing.phone = p.buyerPhone;
+          if (p.status === "APPROVED") existing.approved += 1;
+        }
+      }
+
+      const items = grouped.map((g) => {
+        const m = meta.get(g.buyerEmail);
+        return {
+          email: g.buyerEmail,
+          name: m?.name ?? null,
+          lastName: m?.lastName ?? null,
+          phone: m?.phone ?? null,
+          totalPurchases: g._count._all,
+          approvedPurchases: m?.approved ?? 0,
+          totalSpent: Number(g._sum.amountPaid ?? 0),
+          lastPurchaseAt: g._max.createdAt,
+        };
+      });
+
+      return {
+        items,
+        total: totalEmails.length,
+        pages: Math.max(1, Math.ceil(totalEmails.length / input.limit)),
+      };
     }),
 });

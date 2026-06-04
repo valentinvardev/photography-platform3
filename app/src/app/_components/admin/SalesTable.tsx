@@ -1,14 +1,16 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "~/trpc/react";
 import { ConfirmModal } from "./ConfirmModal";
+import { SalePhotosModal } from "./SalePhotosModal";
 
 type Sale = {
   id: string;
   buyerEmail: string;
   buyerName: string | null;
+  buyerLastName?: string | null;
+  buyerPhone?: string | null;
   bibNumber: string | null;
   status: string;
   amountPaid: unknown;
@@ -17,11 +19,16 @@ type Sale = {
   collection: { title: string };
 };
 
+function buildWaUrl(phone: string) {
+  const digits = phone.replace(/[^\d]/g, "");
+  return `https://wa.me/${digits}`;
+}
+
 export function SalesTable({ items }: { items: Sale[] }) {
-  const router = useRouter();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [confirmSale, setConfirmSale] = useState<Sale | null>(null);
   const [emailSentId, setEmailSentId] = useState<string | null>(null);
+  const [photosSale, setPhotosSale] = useState<Sale | null>(null);
 
   const approve = api.purchase.manualApprove.useMutation({
     onSuccess: () => window.location.reload(),
@@ -76,8 +83,28 @@ export function SalesTable({ items }: { items: Sale[] }) {
             >
               <td className="px-4 py-3">
                 <p className="font-mono text-[10px] text-[color:var(--color-ink)]">{sale.buyerEmail}</p>
-                {sale.buyerName && (
-                  <p className="font-mono text-[9px] text-[color:var(--color-grey-400)] mt-0.5">{sale.buyerName}</p>
+                {(sale.buyerName ?? sale.buyerLastName) && (
+                  <p className="font-mono text-[9px] text-[color:var(--color-grey-400)] mt-0.5">
+                    {[sale.buyerName, sale.buyerLastName].filter(Boolean).join(" ")}
+                  </p>
+                )}
+                {sale.buyerPhone && (
+                  <a
+                    href={buildWaUrl(sale.buyerPhone)}
+                    target="_blank"
+                    rel="noopener"
+                    className={`inline-flex items-center gap-1 mt-1 font-mono text-[10px] hover:underline ${
+                      sale.status === "PENDING"
+                        ? "text-[#92400e] font-bold"
+                        : "text-[color:var(--color-grey-500)]"
+                    }`}
+                    title="Abrir WhatsApp"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347"/>
+                    </svg>
+                    {sale.buyerPhone}
+                  </a>
                 )}
               </td>
 
@@ -107,6 +134,12 @@ export function SalesTable({ items }: { items: Sale[] }) {
 
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => setPhotosSale(sale)}
+                    className="px-2.5 py-1 border border-[color:var(--color-grey-300)] font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
+                  >
+                    ◫ Fotos
+                  </button>
                   {sale.status !== "APPROVED" && (
                     <button
                       onClick={() => setConfirmSale(sale)}
@@ -148,6 +181,14 @@ export function SalesTable({ items }: { items: Sale[] }) {
           variant="success"
           onConfirm={() => { approve.mutate({ id: confirmSale.id }); setConfirmSale(null); }}
           onCancel={() => setConfirmSale(null)}
+        />
+      )}
+
+      {photosSale && (
+        <SalePhotosModal
+          purchaseId={photosSale.id}
+          buyerEmail={photosSale.buyerEmail}
+          onClose={() => setPhotosSale(null)}
         />
       )}
     </div>

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { sendPurchaseApprovedEmail } from "~/lib/email";
+import { getPurchasePhotoThumbs } from "~/lib/purchase-photos";
 
 const LOG_KEY = "upload_error_logs";
 const MAX_LOGS = 200;
@@ -46,6 +47,7 @@ export const settingsRouter = createTRPCRouter({
       const photoCount = await ctx.db.photo.count({
         where: { collectionId: purchase.collectionId, bibNumber: purchase.bibNumber ?? undefined },
       });
+      const photoThumbs = await getPurchasePhotoThumbs(purchase.id, 6);
       await sendPurchaseApprovedEmail({
         to: purchase.buyerEmail,
         buyerName: purchase.buyerName,
@@ -53,6 +55,7 @@ export const settingsRouter = createTRPCRouter({
         collectionTitle: purchase.collection.title,
         downloadToken: purchase.downloadToken,
         photoCount,
+        photoThumbs,
       });
       return { ok: true };
     }),

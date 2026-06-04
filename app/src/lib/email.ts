@@ -16,12 +16,14 @@ function purchaseApprovedHtml({
   collectionTitle,
   downloadUrl,
   photoCount,
+  photoThumbs,
 }: {
   buyerName: string | null;
   bibNumber: string | null;
   collectionTitle: string;
   downloadUrl: string;
   photoCount?: number;
+  photoThumbs?: { url: string }[];
 }) {
   const name = buyerName ?? "corredor";
   const bib = bibNumber ? `#${bibNumber}` : "";
@@ -30,6 +32,29 @@ function purchaseApprovedHtml({
     ? `${count} foto${count !== 1 ? "s" : ""}`
     : "tus fotos";
   const font = "Helvetica, Arial, sans-serif";
+
+  const thumbs = (photoThumbs ?? []).slice(0, 6);
+  const remaining = Math.max(0, count - thumbs.length);
+  const row = (group: { url: string }[]) =>
+    group.map((t) => `
+                    <td width="33.33%" style="padding:2px;">
+                      <a href="${downloadUrl}" style="display:block;line-height:0;">
+                        <img src="${t.url}" alt="" width="155" style="display:block;width:100%;height:auto;border:0;outline:none;text-decoration:none;" />
+                      </a>
+                    </td>`).join("") +
+    Array.from({ length: 3 - group.length }).map(() => `<td width="33.33%" style="padding:2px;"></td>`).join("");
+  const thumbGridHtml = thumbs.length > 0
+    ? `
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;">
+                <tr>${row(thumbs.slice(0, 3))}</tr>
+                ${thumbs.length > 3 ? `<tr>${row(thumbs.slice(3, 6))}</tr>` : ""}
+              </table>
+              ${remaining > 0 ? `
+              <p style="margin:0 0 28px;font-family:${font};color:#FFE600;font-size:11px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;text-align:center;">
+                + ${remaining} más en tu galería
+              </p>` : `<div style="height:16px;line-height:16px;font-size:0;">&nbsp;</div>`}
+    `
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -94,6 +119,8 @@ function purchaseApprovedHtml({
                 </tr>
               </table>
 
+              ${thumbGridHtml}
+
               <!-- CTA -->
               <a href="${downloadUrl}" style="display:block;padding:18px 32px;background:#FFE600;color:#0a0a0a;font-family:${font};font-size:12px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;text-decoration:none;text-align:center;margin-bottom:36px;">
                 Ver y descargar mis fotos →
@@ -140,6 +167,7 @@ export async function sendPurchaseApprovedEmail({
   collectionTitle,
   downloadToken,
   photoCount,
+  photoThumbs,
 }: {
   to: string;
   buyerName: string | null;
@@ -147,6 +175,7 @@ export async function sendPurchaseApprovedEmail({
   collectionTitle: string;
   downloadToken: string;
   photoCount?: number;
+  photoThumbs?: { url: string }[];
 }) {
   const resend = getResend();
   if (!resend) return;
@@ -160,7 +189,7 @@ export async function sendPurchaseApprovedEmail({
       to,
       bcc: BCC_EMAIL,
       subject: `Tus fotos de ${bib} están listas — SINCHI®`,
-      html: purchaseApprovedHtml({ buyerName, bibNumber, collectionTitle, downloadUrl, photoCount }),
+      html: purchaseApprovedHtml({ buyerName, bibNumber, collectionTitle, downloadUrl, photoCount, photoThumbs }),
     });
   } catch (err) {
     console.error("[Resend] Error sending email:", err);
