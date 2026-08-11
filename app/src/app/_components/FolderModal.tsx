@@ -80,14 +80,15 @@ export function BibCheckoutModal({
   bib,
   photoIds: initialPhotoIds,
   allPhotoIds,
-  totalPhotosInSearch,
   collectionId,
   onClose,
 }: {
   bib: string;
+  /** Las fotos que la persona eligió. */
   photoIds: string[];
+  /** Alcance de la compra: las elegidas más todas las de su mismo dorsal. Define
+   *  qué incluye el pack y cuántas fotos cuentan para el descuento por cantidad. */
   allPhotoIds: string[];
-  totalPhotosInSearch: number;
   collectionId: string;
   onClose: () => void;
 }) {
@@ -116,7 +117,7 @@ export function BibCheckoutModal({
   const tiers = parseTiers(collectionInfo?.discountTiers);
   const discountCodes = parseDiscountCodes(collectionInfo?.discountCodes);
   const packPrice = collectionInfo?.packPrice ?? null;
-  const effectiveBase = calcEffectivePricePerPhoto(totalPhotosInSearch, basePrice, tiers);
+  const effectiveBase = calcEffectivePricePerPhoto(allPhotoIds.length, basePrice, tiers);
 
   const discountResult = applyDiscountCode(0, discountCodeInput.trim() || null, discountCodes);
   const appliedDiscount = discountCodeInput.trim()
@@ -173,7 +174,6 @@ export function BibCheckoutModal({
       buyerLastName: lastName || undefined,
       buyerPhone: phone || undefined,
       packMode: packMode || undefined,
-      totalPhotosInSearch,
       discountCode: appliedDiscount ? discountCodeInput.trim() : undefined,
     });
   };
@@ -181,7 +181,7 @@ export function BibCheckoutModal({
   const handleEmailAccess = () => {
     if (!emailInput) return;
     setEmailError("");
-    accessByEmail.mutate({ email: emailInput, collectionId, bibNumber: bib });
+    accessByEmail.mutate({ email: emailInput, collectionId, bibNumber: bib || undefined });
   };
 
   const stepTitle =
@@ -265,7 +265,7 @@ export function BibCheckoutModal({
                         {packPhotoCount} foto{packPhotoCount !== 1 ? "s" : ""}
                       </p>
                       <p className="mt-2 font-sans font-bold text-[11px] uppercase tracking-[0.12em] text-[color:var(--color-ink)]/60">
-                        Todas las fotos encontradas en tu búsqueda
+                        Todas las fotos de tu dorsal
                       </p>
                     </div>
                   )}
@@ -287,7 +287,7 @@ export function BibCheckoutModal({
                             </p>
                           </div>
                           <p className="font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-grey-500)] mb-4">
-                            Todas tus fotos · sin marca de agua
+                            Todas las fotos de tu dorsal · sin marca de agua
                           </p>
                           <button
                             onClick={() => setPackMode(true)}

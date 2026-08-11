@@ -6,6 +6,7 @@ import { createSignedUrl } from "~/lib/supabase/admin";
 import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
 import { getPurchasePhotoThumbs } from "~/lib/purchase-photos";
 import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
+import { normalizeBib } from "~/lib/bib";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -47,7 +48,6 @@ export const purchaseRouter = createTRPCRouter({
         buyerLastName: z.string().optional(),
         buyerPhone: z.string().optional(),
         packMode: z.boolean().optional(),
-        totalPhotosInSearch: z.number().int().min(1).optional(),
         discountCode: z.string().optional(),
       }),
     )
@@ -59,20 +59,55 @@ export const purchaseRouter = createTRPCRouter({
 
       const photos = await ctx.db.photo.findMany({
         where: { collectionId: input.collectionId, id: { in: input.photoIds } },
-        select: { id: true, price: true },
+        select: { id: true, price: true, bibNumber: true },
       });
       if (photos.length === 0) throw new Error("No se encontraron fotos válidas para comprar.");
 
+      // El alcance de la compra lo decide el servidor, no el cliente: las fotos
+      // elegidas más todas las del mismo dorsal. De ahí sale qué incluye el pack
+      // y cuántas fotos cuentan para el descuento por cantidad. Si viniera del
+      // cliente se podría pagar el pack por la colección entera o forzar el
+      // tramo más barato.
+      const bibs = [...new Set(photos.map((p) => p.bibNumber).filter((b): b is string => !!b))];
+      const normalizedBibs = new Set(bibs.map(normalizeBib).filter((b) => b !== ""));
+
+      // El mismo dorsal puede estar escrito de varias formas ("42", "0042"),
+      // así que juntamos todas las variantes antes de armar el alcance.
+      const bibVariants = normalizedBibs.size > 0
+        ? (await ctx.db.photo.groupBy({
+            by: ["bibNumber"],
+            where: { collectionId: input.collectionId, bibNumber: { not: null } },
+          }))
+            .map((r) => r.bibNumber)
+            .filter((b): b is string => !!b && normalizedBibs.has(normalizeBib(b)))
+        : [];
+
+      const sameBibPhotos = bibVariants.length > 0
+        ? await ctx.db.photo.findMany({
+            where: { collectionId: input.collectionId, bibNumber: { in: bibVariants } },
+            select: { id: true, price: true },
+          })
+        : [];
+
+      type ScopePhoto = { id: string; price: (typeof photos)[number]["price"] };
+      const scope = new Map<string, ScopePhoto>();
+      for (const p of [...photos, ...sameBibPhotos]) scope.set(p.id, { id: p.id, price: p.price });
+
+      const packActive =
+        input.packMode === true &&
+        collection.packPrice !== null &&
+        collection.packPrice !== undefined;
+      const purchasedPhotos = packActive ? [...scope.values()] : photos;
+
       let totalAmount: number;
 
-      if (input.packMode && collection.packPrice !== null && collection.packPrice !== undefined) {
+      if (packActive) {
         totalAmount = Number(collection.packPrice);
       } else {
         const tiers = parseTiers(collection.discountTiers);
-        const totalInSearch = input.totalPhotosInSearch ?? photos.length;
         const basePrice = Number(collection.pricePerBib);
-        const effectiveBase = calcEffectivePricePerPhoto(totalInSearch, basePrice, tiers);
-        totalAmount = photos.reduce((sum, p) => {
+        const effectiveBase = calcEffectivePricePerPhoto(scope.size, basePrice, tiers);
+        totalAmount = purchasedPhotos.reduce((sum, p) => {
           const custom = p.price !== null ? Number(p.price) : null;
           return sum + (custom !== null && custom !== basePrice ? custom : effectiveBase);
         }, 0);
@@ -88,13 +123,15 @@ export const purchaseRouter = createTRPCRouter({
       const purchase = await ctx.db.purchase.create({
         data: {
           collectionId: input.collectionId,
-          bibNumber: null,
+          // Guardamos el dorsal cuando la compra es de uno solo: es lo que usa
+          // "ya compré, acceder con email" para encontrar la descarga.
+          bibNumber: normalizedBibs.size === 1 ? bibs[0]! : null,
           buyerEmail: input.buyerEmail,
           buyerName: input.buyerName,
           buyerLastName: input.buyerLastName,
           buyerPhone: input.buyerPhone,
           amountPaid: totalAmount,
-          photoIds: JSON.stringify(input.photoIds),
+          photoIds: JSON.stringify(purchasedPhotos.map((p) => p.id)),
         },
       });
 
@@ -102,7 +139,7 @@ export const purchaseRouter = createTRPCRouter({
         body: {
           items: [{
             id: input.collectionId,
-            title: `${photos.length} foto${photos.length !== 1 ? "s" : ""} — ${collection.title}`,
+            title: `${purchasedPhotos.length} foto${purchasedPhotos.length !== 1 ? "s" : ""} — ${collection.title}`,
             quantity: 1,
             unit_price: totalAmount,
             currency_id: "ARS",

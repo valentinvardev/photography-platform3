@@ -181,7 +181,7 @@ export function PricingPanel({
               className="w-full border border-[color:var(--color-grey-300)] bg-[color:var(--color-paper)] px-4 py-2.5 font-display italic text-[22px] text-[color:var(--color-ink)] focus:border-[color:var(--color-ink)] outline-none"
             />
             <p className="mt-2 font-mono text-[8px] uppercase tracking-[0.14em] text-[color:var(--color-grey-400)]">
-              Precio fijo para comprar todas las fotos encontradas en la búsqueda
+              Precio fijo para comprar todas las fotos del dorsal elegido
             </p>
           </>
         )}

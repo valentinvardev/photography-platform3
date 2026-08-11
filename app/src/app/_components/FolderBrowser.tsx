@@ -6,6 +6,7 @@ import { api } from "~/trpc/react";
 import { BibCheckoutModal } from "~/app/_components/FolderModal";
 import { useCart } from "~/app/_components/CartContext";
 import { Lightbox } from "~/app/_components/design/Lightbox";
+import { normalizeBib } from "~/lib/bib";
 
 // ─── Photo tile ───────────────────────────────────────────────────────────────
 // URL is passed from parent batch query — no per-tile API call.
@@ -248,7 +249,7 @@ export function FolderBrowser({
     "idle" | "uploading" | "done" | "no-face" | "error"
   >("idle");
   const [faceBibs, setFaceBibs] = useState<{ bib: string; photoIds: string[] }[] | null>(null);
-  const [modal, setModal] = useState<{ bib: string; photoIds: string[]; allPhotoIds: string[]; totalPhotosInSearch: number } | null>(null);
+  const [modal, setModal] = useState<{ bib: string; photoIds: string[]; allPhotoIds: string[] } | null>(null);
   const [lightbox, setLightbox] = useState<{
     url: string;
     mimeType: string | null;
@@ -304,8 +305,21 @@ export function FolderBrowser({
     () => searchData?.fuzzy.flatMap((g) => g.photos.map((p) => ({ ...p, isFuzzy: true as const }))) ?? [],
     [searchData],
   );
-  const allSearchPhotos = useMemo(() => [...exactPhotos, ...fuzzyPhotos], [exactPhotos, fuzzyPhotos]);
-  const noResults = hasSearch && !searchLoading && allSearchPhotos.length === 0;
+  const similarBibCount = searchData?.fuzzy.length ?? 0;
+
+  // Los parecidos van aparte y arrancan cerrados cuando el dorsal sí apareció:
+  // ahí sólo son ruido. Sin coincidencia exacta se abren solos, que es cuando
+  // sirven de verdad.
+  const [similarOverride, setSimilarOverride] = useState<boolean | null>(null);
+  useEffect(() => { setSimilarOverride(null); }, [debouncedSearch]);
+  const similarOpen = similarOverride ?? exactPhotos.length === 0;
+
+  const allSearchPhotos = useMemo(
+    () => (similarOpen ? [...exactPhotos, ...fuzzyPhotos] : exactPhotos),
+    [exactPhotos, fuzzyPhotos, similarOpen],
+  );
+  const noResults =
+    hasSearch && !searchLoading && exactPhotos.length === 0 && fuzzyPhotos.length === 0;
 
   const showingFace = faceActive && faceStatus === "done" && faceBibs !== null;
 
@@ -375,13 +389,36 @@ export function FolderBrowser({
   const mimeTypeMapRef = useRef(mimeTypeMap);
   useEffect(() => { mimeTypeMapRef.current = mimeTypeMap; }, [mimeTypeMap]);
 
+  /**
+   * Alcance de la compra: las fotos elegidas más todas las que comparten dorsal
+   * con alguna de ellas. Es lo que se cobra como pack y lo que cuenta para el
+   * descuento por cantidad, así que nunca entran acá las fotos de dorsales
+   * parecidos que la persona no eligió. El servidor recalcula lo mismo antes de
+   * cobrar; esto es sólo para mostrar el precio correcto de antemano.
+   */
+  const buildPurchaseScope = useCallback((selectedIds: string[]) => {
+    const ap = allPhotosRef.current ?? [];
+    const byId = new Map(ap.map((p) => [p.id, p]));
+    const bibs = new Set<string>();
+    for (const id of selectedIds) {
+      const bib = normalizeBib(byId.get(id)?.bibNumber);
+      if (bib) bibs.add(bib);
+    }
+    const ids = new Set(selectedIds);
+    if (bibs.size > 0) {
+      for (const p of ap) if (bibs.has(normalizeBib(p.bibNumber))) ids.add(p.id);
+    }
+    return [...ids];
+  }, []);
+
   // Stable handlers — same reference across renders, so memo'd tiles don't re-render
   const handleOpenLightbox = useCallback((photoId: string, bibNumber: string | null, url: string) => {
     const ap = allPhotosRef.current;
     const vp = visiblePhotosRef.current;
+    const nBib = normalizeBib(bibNumber);
     const sameBibIds =
-      bibNumber && ap
-        ? ap.filter((ph) => ph.bibNumber === bibNumber).map((ph) => ph.id)
+      nBib && ap
+        ? ap.filter((ph) => normalizeBib(ph.bibNumber) === nBib).map((ph) => ph.id)
         : [photoId];
     const idx = vp.findIndex((v) => v.id === photoId);
     const meta = mimeTypeMapRef.current.get(photoId);
@@ -410,9 +447,9 @@ export function FolderBrowser({
     if (items.length === 0) return;
     const allBibs = [...new Set(items.map((i) => i.bibNumber).filter(Boolean))];
     const bib = allBibs.length === 1 ? (allBibs[0] ?? "") : "";
-    const allVisible = visiblePhotosRef.current.map((p) => p.id);
-    setModal({ bib, photoIds: items.map((i) => i.photoId), allPhotoIds: allVisible, totalPhotosInSearch: allVisible.length });
-  }, []);
+    const scope = buildPurchaseScope(items.map((i) => i.photoId));
+    setModal({ bib, photoIds: items.map((i) => i.photoId), allPhotoIds: scope });
+  }, [buildPurchaseScope]);
 
   // Checkout event listener — stable, never re-subscribes on cart changes
   useEffect(() => {
@@ -658,16 +695,15 @@ export function FolderBrowser({
               </p>
             </div>
           )}
-          {!searchLoading && allSearchPhotos.length > 0 && (
+          {/* Tus fotos — sólo el dorsal buscado */}
+          {!searchLoading && exactPhotos.length > 0 && (
             <>
               <SectionLabel label={`Dorsal #${debouncedSearch}.`} />
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)] mb-8">
                 {exactPhotos.length} {exactPhotos.length === 1 ? "foto" : "fotos"}
-                {fuzzyPhotos.length > 0 &&
-                  ` · ${fuzzyPhotos.length} similar${fuzzyPhotos.length !== 1 ? "es" : ""}`}
               </p>
               <div className={GRID}>
-                {allSearchPhotos.map((p, i) => (
+                {exactPhotos.map((p, i) => (
                   <PhotoTile
                     key={p.id}
                     photoId={p.id}
@@ -675,7 +711,6 @@ export function FolderBrowser({
                     index={i}
                     price={p.price ?? pricePerBib}
                     inCart={isInCart(p.id)}
-                    isFuzzy={p.isFuzzy}
                     url={urlMap.get(p.id) ?? null}
                     mimeType={mimeTypeMap.get(p.id)?.mimeType}
                     filename={mimeTypeMap.get(p.id)?.filename}
@@ -685,6 +720,73 @@ export function FolderBrowser({
                 ))}
               </div>
             </>
+          )}
+
+          {/* Sin coincidencia exacta, pero hay dorsales parecidos */}
+          {!searchLoading && exactPhotos.length === 0 && fuzzyPhotos.length > 0 && (
+            <div className="border border-dashed border-[color:var(--color-grey-300)] py-16 text-center mb-14">
+              <p className="eyebrow mb-3">Sin coincidencia exacta</p>
+              <p className="font-display italic text-[38px] leading-tight text-[color:var(--color-ink)]">
+                #{debouncedSearch} no aparece tal cual.
+              </p>
+              <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                Puede que el número se haya leído mal en la foto · mirá los parecidos
+              </p>
+            </div>
+          )}
+
+          {/* Parecidos — siempre en su propio bloque, nunca mezclados arriba */}
+          {!searchLoading && fuzzyPhotos.length > 0 && (
+            <div
+              className={
+                exactPhotos.length > 0
+                  ? "mt-16 pt-10 border-t border-[color:var(--color-grey-300)]"
+                  : ""
+              }
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-4 mb-8">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-grey-500)]">
+                  {similarBibCount} dorsal{similarBibCount !== 1 ? "es" : ""} parecido
+                  {similarBibCount !== 1 ? "s" : ""} · {fuzzyPhotos.length}{" "}
+                  {fuzzyPhotos.length === 1 ? "foto" : "fotos"}
+                </p>
+                {exactPhotos.length > 0 && (
+                  <button
+                    onClick={() => setSimilarOverride(!similarOpen)}
+                    className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--color-ink)] border border-[color:var(--color-grey-300)] px-4 py-2 hover:border-[#FFE000] hover:text-[#FFE000] transition-colors"
+                  >
+                    {similarOpen ? "Ocultar parecidos" : "Ver parecidos"}
+                  </button>
+                )}
+              </div>
+              {similarOpen && (
+                <>
+                  <p className="font-sans text-[13px] leading-[1.6] text-white/35 mb-8 max-w-[520px]">
+                    No son del #{debouncedSearch}. Aparecen por si el número se leyó
+                    mal en la foto. No cuentan para el pack ni para el descuento por
+                    cantidad, salvo que agregues una al carrito.
+                  </p>
+                  <div className={GRID}>
+                    {fuzzyPhotos.map((p, i) => (
+                      <PhotoTile
+                        key={p.id}
+                        photoId={p.id}
+                        bibNumber={p.bibNumber}
+                        index={exactPhotos.length + i}
+                        price={p.price ?? pricePerBib}
+                        inCart={isInCart(p.id)}
+                        isFuzzy
+                        url={urlMap.get(p.id) ?? null}
+                        mimeType={mimeTypeMap.get(p.id)?.mimeType}
+                        filename={mimeTypeMap.get(p.id)?.filename}
+                        onOpenLightbox={handleOpenLightbox}
+                        onToggleCart={handleToggleCart}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -779,11 +881,11 @@ export function FolderBrowser({
               </div>
               <button
                 onClick={() => {
+                  const scope = buildPurchaseScope(lightbox.photoIds);
                   setModal({
                     bib: lightbox.bibNumber ?? "",
                     photoIds: lightbox.photoIds,
-                    allPhotoIds: lightbox.photoIds,
-                    totalPhotosInSearch: lightbox.photoIds.length,
+                    allPhotoIds: scope,
                   });
                   setLightbox(null);
                 }}
@@ -811,7 +913,6 @@ export function FolderBrowser({
           bib={modal.bib}
           photoIds={modal.photoIds}
           allPhotoIds={modal.allPhotoIds}
-          totalPhotosInSearch={modal.totalPhotosInSearch}
           collectionId={collectionId}
           onClose={() => setModal(null)}
         />

@@ -10,12 +10,36 @@ import {
 import { resolveMediaUrl } from "~/lib/media";
 import { isVideoMimeType } from "~/lib/video-utils";
 import {
+  bibSimilarity,
+  normalizeBib,
+  MAX_SUGGESTED_BIBS,
+  MAX_SUGGESTED_PHOTOS,
+  type BibMatchLevel,
+} from "~/lib/bib";
+import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
 
 const STORAGE_LIMIT_BYTES = 100 * 1024 * 1024 * 1024; // 100 GB
+
+type SearchPhoto = {
+  id: string;
+  bibNumber: string | null;
+  price: number | null;
+  mimeType: string | null;
+  filename: string;
+  storageKey: string;
+  previewKey: string | null;
+};
+
+type BibSearchResult = {
+  /** Fotos del dorsal buscado. */
+  exact: { bib: string; photos: SearchPhoto[] }[];
+  /** Dorsales parecidos, por si el OCR leyó mal el número en la foto. */
+  fuzzy: { bib: string; photos: SearchPhoto[]; level: BibMatchLevel }[];
+};
 
 const ACCEPTED_CONTENT_TYPES = z.string().refine(
   (t) => t.startsWith("image/") || t.startsWith("video/"),
@@ -47,11 +71,11 @@ export const photoRouter = createTRPCRouter({
     .input(
       z.object({
         collectionId: z.string(),
-        bib: z.string().min(1).max(10),
+        bib: z.string().min(1).max(12),
       }),
     )
-    .query(async ({ ctx, input }) => {
-      const q = input.bib.trim();
+    .query(async ({ ctx, input }): Promise<BibSearchResult> => {
+      const q = normalizeBib(input.bib);
 
       const select = {
         id: true,
@@ -63,43 +87,74 @@ export const photoRouter = createTRPCRouter({
         previewKey: true,
       } as const;
 
-      const exact = await ctx.db.photo.findMany({
+      const empty: BibSearchResult = { exact: [], fuzzy: [] };
+      if (!q) return empty;
+
+      // Los dorsales de la colección, una sola vez. Comparar acá (y no con un
+      // `contains` en SQL) es lo que permite que #42 y #0042 sean el mismo
+      // dorsal y que #104 no arrastre a #1042.
+      const distinct = await ctx.db.photo.groupBy({
+        by: ["bibNumber"],
+        where: { collectionId: input.collectionId, bibNumber: { not: null } },
+      });
+
+      const exactBibs: string[] = [];
+      const similar: { bib: string; level: BibMatchLevel }[] = [];
+      for (const row of distinct) {
+        const raw = row.bibNumber;
+        if (!raw) continue;
+        const n = normalizeBib(raw);
+        if (!n) continue;
+        if (n === q) {
+          exactBibs.push(raw);
+          continue;
+        }
+        const level = bibSimilarity(q, n);
+        if (level !== null) similar.push({ bib: raw, level });
+      }
+
+      // Si ya encontramos el dorsal, sólo mostramos parecidos de confianza alta
+      // o media. Sin coincidencia exacta abrimos la mano: ahí el parecido es la
+      // única pista que le queda a la persona.
+      const maxLevel = exactBibs.length > 0 ? 2 : 3;
+      const similarBibs = similar
+        .filter((s) => s.level <= maxLevel)
+        .sort(
+          (a, b) =>
+            a.level - b.level ||
+            a.bib.localeCompare(b.bib, "es", { numeric: true }),
+        )
+        .slice(0, MAX_SUGGESTED_BIBS);
+
+      if (exactBibs.length === 0 && similarBibs.length === 0) return empty;
+
+      const levelByBib = new Map(similarBibs.map((s) => [s.bib, s.level]));
+      const rankByBib = new Map(similarBibs.map((s, i) => [s.bib, i]));
+
+      const rows = await ctx.db.photo.findMany({
         where: {
           collectionId: input.collectionId,
-          bibNumber: { contains: q, mode: "insensitive" },
+          bibNumber: { in: [...exactBibs, ...similarBibs.map((s) => s.bib)] },
         },
         orderBy: { order: "asc" },
         select,
       });
 
-      let fuzzy: typeof exact = [];
-      if (/^\d{3,4}$/.test(q)) {
-        const candidates = await ctx.db.photo.findMany({
-          where: {
-            collectionId: input.collectionId,
-            bibNumber: { not: null },
-            AND: [{ bibNumber: { not: q } }],
-          },
-          select,
-        });
-        fuzzy = candidates.filter((p) => {
-          const n = p.bibNumber?.trim() ?? "";
-          if (n.length !== q.length) return false;
-          let diffs = 0;
-          for (let i = 0; i < q.length; i++) {
-            if (n[i] !== q[i]) diffs++;
-          }
-          return diffs === 1;
-        });
-      }
+      const exactSet = new Set(exactBibs);
+      const exact = rows.filter((r) => r.bibNumber && exactSet.has(r.bibNumber));
+      const fuzzy = rows
+        .filter((r) => r.bibNumber && rankByBib.has(r.bibNumber))
+        // sort estable: dentro de cada dorsal se mantiene el orden original
+        .sort((a, b) => rankByBib.get(a.bibNumber!)! - rankByBib.get(b.bibNumber!)!)
+        .slice(0, MAX_SUGGESTED_PHOTOS);
 
-      const normPrice = (p: (typeof exact)[number]) => ({
+      const normPrice = (p: (typeof rows)[number]) => ({
         ...p,
         price: p.price !== null ? p.price.toNumber() : null,
       });
 
-      const groupByBib = (photos: typeof exact) => {
-        const map = new Map<string, typeof exact>();
+      const groupByBib = (photos: typeof rows) => {
+        const map = new Map<string, typeof rows>();
         for (const p of photos) {
           const key = p.bibNumber ?? "?";
           if (!map.has(key)) map.set(key, []);
@@ -111,7 +166,13 @@ export const photoRouter = createTRPCRouter({
         }));
       };
 
-      return { exact: groupByBib(exact), fuzzy: groupByBib(fuzzy) };
+      return {
+        exact: groupByBib(exact),
+        fuzzy: groupByBib(fuzzy).map((g) => ({
+          ...g,
+          level: levelByBib.get(g.bib) ?? 3,
+        })),
+      };
     }),
 
   /** Returns signed preview URLs + mimeType for a list of photo IDs. */
