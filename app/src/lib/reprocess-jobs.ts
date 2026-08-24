@@ -193,8 +193,11 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
       `[reprocess:${kind}] lote de ${lote.length} desde order=${desdeOrden}`,
     );
 
-    // El watermark es CPU (sharp); OCR e indexado son llamadas a AWS.
-    const concurrency = kind === "watermark" ? 2 : 3;
+    // El watermark quedó siendo el más pesado en red, no en CPU: es la única
+    // etapa que todavía baja el original al servidor (sharp necesita los bytes),
+    // mientras que OCR e indexado ahora los lee AWS de S3. El encode son ~150 ms
+    // contra segundos de descarga, así que conviene más paralelismo, no menos.
+    const concurrency = kind === "watermark" ? 4 : 3;
     let next = 0;
 
     const worker = async () => {

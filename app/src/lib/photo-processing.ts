@@ -347,10 +347,25 @@ export async function runWatermark(
   if (!photo) return { previewKey: null };
 
   const useS3 = isS3Key(photo.storageKey);
-  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "Watermark"));
-  if (!bytes) return { previewKey: null };
 
-  const buffer = Buffer.from(bytes.raw);
+  // Descarga cruda a propósito, sin pasar por loadPhotoBytes: ese además arma
+  // la variante comprimida para Rekognition —un decode+encode completo de
+  // sharp— que la marca de agua no usa para nada. Era trabajo puro al pedo en
+  // cada foto. El original hace falta entero: sharp necesita los bytes acá, y
+  // por eso esta es la única etapa que sigue bajando la foto al servidor.
+  const t0 = Date.now();
+  const raw = preloaded?.raw ?? (await downloadBytes(photo.storageKey));
+  if (!raw) {
+    console.error(`[Watermark] no se pudo bajar ${photo.storageKey}`);
+    return { previewKey: null };
+  }
+  if (!preloaded) {
+    console.log(
+      `[Watermark] bajada ${(raw.byteLength / 1e6).toFixed(1)}MB en ${Date.now() - t0}ms`,
+    );
+  }
+
+  const buffer = Buffer.from(raw);
 
   try {
     const supabase = getAdminClient();
