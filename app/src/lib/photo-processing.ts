@@ -316,13 +316,22 @@ async function getWatermarkBytes(): Promise<Buffer | null> {
   const now = Date.now();
   if (wmCache && now < wmCache.expiresAt) return wmCache.buf;
 
-  let buf: Buffer | null = null;
-  try {
-    buf = Buffer.from(await getS3ObjectBytes(s3Key(WATERMARK_KEY)));
-  } catch {
-    // Todavía no subieron un watermark. Se cachea el null igual, para no
-    // reintentar la descarga en cada foto de la tanda.
+  // Por downloadBytes, no por getS3ObjectBytes: así aprovecha CloudFront y el
+  // tope de tiempo, igual que las fotos.
+  const bytes = await downloadBytes(s3Key(WATERMARK_KEY));
+  const buf = bytes ? Buffer.from(bytes) : null;
+
+  // Un fallo NO se cachea diez minutos. Antes sí, y era peligroso: si la
+  // descarga fallaba una vez, toda foto procesada en esa ventana salía con el
+  // texto "PREVIEW" translúcido del fallback en lugar de la marca — un preview
+  // que parece sin marca de agua, pero que la app da por bueno y no reintenta.
+  // Ante la duda conviene reintentar de más y no publicar una foto sin marcar.
+  if (!buf) {
+    console.warn("[Watermark] no se pudo traer el PNG de la marca — se reintenta enseguida");
+    wmCache = { buf: null, expiresAt: now + 15_000 };
+    return null;
   }
+
   wmCache = { buf, expiresAt: now + 10 * 60 * 1000 };
   return buf;
 }
