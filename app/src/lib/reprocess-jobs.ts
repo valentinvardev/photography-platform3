@@ -171,7 +171,7 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
 
     const crudo = await db.photo.findMany({
       where: { ...where, order: { gte: desdeOrden } },
-      select: { id: true, mimeType: true, filename: true, order: true },
+      select: { id: true, mimeType: true, filename: true, order: true, storageKey: true, previewKey: true },
       orderBy: [{ order: "asc" }, { id: "asc" }],
       take: LOTE,
     });
@@ -197,7 +197,7 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
     // etapa que todavía baja el original al servidor (sharp necesita los bytes),
     // mientras que OCR e indexado ahora los lee AWS de S3. El encode son ~150 ms
     // contra segundos de descarga, así que conviene más paralelismo, no menos.
-    const concurrency = kind === "watermark" ? 4 : 3;
+    const concurrency = kind === "watermark" ? 6 : 3;
     let next = 0;
 
     const worker = async () => {
@@ -217,7 +217,7 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
             // runWatermark no lanza cuando no puede: devuelve previewKey null.
             const { previewKey } = isVideo
               ? await runVideoWatermark(photo.id)
-              : await runWatermark(photo.id);
+              : await runWatermark(photo.id, { foto: photo });
             if (!previewKey) {
               anotar(photo.id, "no se pudo generar el preview (ver logs)");
               continue;

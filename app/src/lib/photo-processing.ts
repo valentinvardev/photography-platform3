@@ -26,6 +26,14 @@ import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCK
 import type { Image } from "@aws-sdk/client-rekognition";
 
 /**
+ * libvips usa 16 hilos por operación por defecto. Con varias fotos procesándose
+ * en paralelo eso son decenas de hilos peleando por los pocos núcleos del VPS.
+ * El paralelismo lo maneja el pool de trabajos, así que cada operación va con
+ * un hilo y no se pisan.
+ */
+sharp.concurrency(1);
+
+/**
  * Cómo se le pasa la imagen a Rekognition.
  *
  * Si está en S3, se le pasa la referencia y AWS la lee por su cuenta: no baja
@@ -371,11 +379,26 @@ async function buildWatermarkComposite(
   return { input: scaled, tile: true, blend: "over" };
 }
 
+/** Lo mínimo que necesita runWatermark para trabajar sin volver a la base. */
+export type FotoParaWatermark = {
+  id: string;
+  storageKey: string;
+  previewKey: string | null;
+};
+
 export async function runWatermark(
   photoId: string,
-  preloaded?: PhotoBytes,
+  opciones?: { preloaded?: PhotoBytes; foto?: FotoParaWatermark },
 ): Promise<{ previewKey: string | null }> {
-  const photo = await db.photo.findUnique({ where: { id: photoId } });
+  const { preloaded, foto } = opciones ?? {};
+
+  // Quien ya tiene el registro lo pasa y se ahorra una consulta. En este VPS
+  // cada ida a la base cuesta ~1 s, más que todo el trabajo de imagen: el
+  // trabajo de reprocesado ya traía estos datos en el lote y volvía a pedirlos.
+  const photo = foto ?? (await db.photo.findUnique({
+    where: { id: photoId },
+    select: { id: true, storageKey: true, previewKey: true },
+  }));
   if (!photo) return { previewKey: null };
 
   const useS3 = isS3Key(photo.storageKey);
@@ -411,9 +434,12 @@ export async function runWatermark(
       .toBuffer({ resolveWithObject: true });
 
     const composite = await buildWatermarkComposite(info.width, info.height);
+    // Sin mozjpeg: medido sobre una foto real del evento, 468 ms contra 319 ms
+    // por el mismo preview. Lo que ahorra en bytes no compensa un tercio más de
+    // CPU cuando hay cientos de fotos en cola.
     const watermarked = await sharp(resizedBuffer)
       .composite([composite])
-      .jpeg({ quality: PREVIEW_QUALITY, mozjpeg: true })
+      .jpeg({ quality: PREVIEW_QUALITY })
       .toBuffer();
 
     // Delete previous preview from the correct backend
@@ -548,7 +574,7 @@ export async function processPhoto(photoId: string, collectionId: string): Promi
   const started = Date.now();
   await Promise.allSettled([
     runOcr(photoId, bytes),
-    runWatermark(photoId, bytes),
+    runWatermark(photoId, { preloaded: bytes }),
     runFaceIndex(photoId, collectionId, bytes),
   ]);
   console.log(`[process] photoId=${photoId} listo en ${Date.now() - started} ms`);
