@@ -27,6 +27,14 @@ import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key } from "
 /** Tope de Rekognition para imágenes mandadas por `Bytes`. */
 const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
 
+/**
+ * Caras a indexar por foto. En una foto de evento entran corredores y público,
+ * así que el tope viejo de 10 se quedaba corto. Cada cara guardada se factura
+ * por mes, y cuantas más caras de fondo haya, más chance de un match cruzado en
+ * la búsqueda por selfie — por eso no está en el máximo de 100 que admite AWS.
+ */
+const MAX_FACES_POR_FOTO = 20;
+
 // ── Storage backend helpers ───────────────────────────────────────────────────
 
 async function downloadBytes(storageKey: string): Promise<Uint8Array | null> {
@@ -55,6 +63,23 @@ export type PhotoBytes = {
   forRekognition: Uint8Array;
 };
 
+/**
+ * Escalones para meter una foto bajo el límite de Rekognition perdiendo la
+ * menor resolución posible. Se toma el primero que entra.
+ *
+ * Antes esto era un único paso a 1920 px, que en fotos de evento es demasiado:
+ * un original de 6000 px se reducía 3,1× y una cara de 120 px quedaba en 38 —
+ * por debajo de los ~40x40 px que Rekognition necesita para detectarla. De ahí
+ * salían los `indexed 0 faces` y que la búsqueda por selfie no encontrara nada.
+ * Bajar calidad cuesta mucho menos detección que bajar resolución.
+ */
+const ESCALONES_REKOGNITION: { width: number | null; quality: number }[] = [
+  { width: null, quality: 80 },
+  { width: 4096, quality: 80 },
+  { width: 3000, quality: 75 },
+  { width: 1920, quality: 80 },
+];
+
 export async function loadPhotoBytes(
   storageKey: string,
   label: string,
@@ -69,12 +94,29 @@ export async function loadPhotoBytes(
     return { raw, forRekognition: raw };
   }
 
-  const compressed = await sharp(Buffer.from(raw))
-    .resize({ width: 1920, withoutEnlargement: true })
-    .jpeg({ quality: 85 })
-    .toBuffer();
-  console.log(`[${label}] Compressed ${raw.byteLength} → ${compressed.byteLength} bytes`);
-  return { raw, forRekognition: new Uint8Array(compressed) };
+  const source = Buffer.from(raw);
+  let ultima: Buffer | null = null;
+
+  for (const escalon of ESCALONES_REKOGNITION) {
+    const pipeline = sharp(source);
+    if (escalon.width) pipeline.resize({ width: escalon.width, withoutEnlargement: true });
+    ultima = await pipeline.jpeg({ quality: escalon.quality }).toBuffer();
+
+    if (ultima.byteLength <= REKOGNITION_MAX_BYTES) {
+      console.log(
+        `[${label}] Compressed ${raw.byteLength} → ${ultima.byteLength} bytes ` +
+          `(${escalon.width ? `${escalon.width}px` : "resolución completa"}, q${escalon.quality})`,
+      );
+      return { raw, forRekognition: new Uint8Array(ultima) };
+    }
+  }
+
+  // Ningún escalón entró. Se manda el más chico igual: si Rekognition lo
+  // rechaza, el error queda logueado donde corresponde.
+  console.warn(
+    `[${label}] No se pudo bajar de ${REKOGNITION_MAX_BYTES} bytes: quedó en ${ultima!.byteLength}`,
+  );
+  return { raw, forRekognition: new Uint8Array(ultima!) };
 }
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
@@ -338,12 +380,23 @@ export async function runFaceIndex(
         Image: { Bytes: bytes.forRekognition },
         ExternalImageId: photoId,
         DetectionAttributes: [],
-        MaxFaces: 10,
+        MaxFaces: MAX_FACES_POR_FOTO,
+        // Sin esto Rekognition usa QualityFilter "AUTO", que descarta caras
+        // chicas o poco nítidas ANTES de indexarlas. Medido sobre fotos reales
+        // de downhill: de 8 caras detectadas con confianza 88-100, AUTO tiraba
+        // 5 por SMALL_BOUNDING_BOX y LOW_SHARPNESS. Son justo las de quien está
+        // lejos o en movimiento, que es medio evento deportivo.
+        QualityFilter: "NONE",
       })),
     );
 
     const indexed = result.FaceRecords ?? [];
-    console.log(`[FaceIndex] photoId=${photoId} indexed ${indexed.length} faces`);
+    const descartadas = result.UnindexedFaces ?? [];
+    // Se loguean las dos: contar sólo las indexadas hacía invisible el filtro.
+    console.log(
+      `[FaceIndex] photoId=${photoId} indexed ${indexed.length} faces` +
+        (descartadas.length ? `, descartadas ${descartadas.length}` : ""),
+    );
 
     // Se marca el intento aunque no haya salido ninguna cara. Sin esto, una
     // foto donde no hay rostro detectable queda para siempre en la cola de

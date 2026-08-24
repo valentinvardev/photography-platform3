@@ -31,7 +31,7 @@ const BATCH = 12;
  */
 const PRESUPUESTO_MS = 20_000;
 
-export type ReprocessKind = "ocr" | "faces" | "watermark";
+export type ReprocessKind = "ocr" | "ocr-retry" | "faces" | "watermark";
 
 /**
  * Qué le falta a cada foto.
@@ -45,6 +45,11 @@ function pendingFilter(kind: ReprocessKind) {
   switch (kind) {
     case "ocr":
       return { ocrAttemptedAt: null };
+    case "ocr-retry":
+      // La excepción deliberada: acá SÍ se reprocesa lo ya intentado. Es una
+      // acción aparte, que el admin elige a mano, porque vuelve a pagar OCR
+      // sobre fotos donde ya se buscó dorsal y no apareció.
+      return { bibNumber: null };
     case "faces":
       return { faceAttemptedAt: null };
     case "watermark":
@@ -83,12 +88,13 @@ async function procesar(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { collectionId, kind } = (await req.json()) as {
+  const { collectionId, kind, desdeOrden } = (await req.json()) as {
     collectionId?: string;
     kind?: ReprocessKind;
+    desdeOrden?: number;
   };
 
-  if (!collectionId || !kind || !["ocr", "faces", "watermark"].includes(kind)) {
+  if (!collectionId || !kind || !["ocr", "ocr-retry", "faces", "watermark"].includes(kind)) {
     return NextResponse.json({ error: "collectionId y kind son requeridos" }, { status: 400 });
   }
 
@@ -102,15 +108,29 @@ async function procesar(req: NextRequest) {
 
   const where = { collectionId, ...pendingFilter(kind) };
 
+  // Cursor sobre `order`, no paginado por offset. Es lo que hace que cada
+  // pasada avance siempre: hay fotos que nunca salen del filtro —una sin dorsal
+  // visible sigue con bibNumber null por más veces que se la procese— y sin
+  // cursor el lote traería las mismas doce para siempre, pagándolas cada vuelta.
   const batch = await db.photo.findMany({
-    where,
-    select: { id: true, mimeType: true, filename: true },
+    where: {
+      ...where,
+      ...(typeof desdeOrden === "number" ? { order: { gt: desdeOrden } } : {}),
+    },
+    select: { id: true, mimeType: true, filename: true, order: true },
     orderBy: { order: "asc" },
     take: BATCH,
   });
 
   if (batch.length === 0) {
-    return NextResponse.json({ processed: 0, pending: 0, failed: 0 });
+    const restantes = await db.photo.count({ where });
+    return NextResponse.json({
+      processed: 0,
+      pending: restantes,
+      failed: 0,
+      agotado: true,
+      ultimoOrden: desdeOrden ?? null,
+    });
   }
 
   const { runOcr, runFaceIndex, runWatermark, loadPhotoBytes } = await import(
@@ -133,10 +153,16 @@ async function procesar(req: NextRequest) {
   let next = 0;
   const inicio = Date.now();
 
+  /** Hasta dónde llegó la pasada; el cliente lo devuelve en el request siguiente. */
+  let ultimoOrden = desdeOrden ?? null;
+
   const worker = async () => {
     while (next < batch.length) {
       if (Date.now() - inicio > PRESUPUESTO_MS) break;
       const photo = batch[next++]!;
+      // El cursor avanza aunque la foto falle o se saltee: reintentarla en la
+      // vuelta siguiente sería volver a pagar el mismo fallo.
+      if (ultimoOrden === null || photo.order > ultimoOrden) ultimoOrden = photo.order;
       const isVideo =
         isVideoMimeType(photo.mimeType) ||
         /\.(mp4|mov|webm|mkv|m4v)$/i.test(photo.filename);
@@ -169,7 +195,7 @@ async function procesar(req: NextRequest) {
             continue;
           }
 
-          if (kind === "ocr") await runOcr(photo.id, bytes);
+          if (kind === "ocr" || kind === "ocr-retry") await runOcr(photo.id, bytes);
           else await runFaceIndex(photo.id, collectionId, bytes);
         }
         processed++;
@@ -191,5 +217,14 @@ async function procesar(req: NextRequest) {
       (errores.length ? ` errores=${JSON.stringify(errores)}` : ""),
   );
 
-  return NextResponse.json({ processed, pending, failed, errores });
+  return NextResponse.json({
+    processed,
+    pending,
+    failed,
+    errores,
+    ultimoOrden,
+    // Se agotó el barrido si el lote no vino lleno: no hay más fotos después
+    // del cursor.
+    agotado: batch.length < BATCH,
+  });
 }

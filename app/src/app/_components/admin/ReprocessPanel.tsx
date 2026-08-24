@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "~/trpc/react";
 
-type Kind = "ocr" | "faces" | "watermark";
+type Kind = "ocr" | "ocr-retry" | "faces" | "watermark";
 type Estado = "idle" | "confirmando" | "corriendo" | "listo" | "error";
 
 const ACCIONES: {
@@ -23,6 +23,13 @@ const ACCIONES: {
     kind: "ocr",
     titulo: "Reconocer dorsales",
     descripcion: "Sólo fotos donde el OCR nunca se ejecutó.",
+    facturado: true,
+  },
+  {
+    kind: "ocr-retry",
+    titulo: "Reintentar dorsales no detectados",
+    descripcion:
+      "Vuelve a pasar por las fotos que quedaron sin dorsal, aunque ya se hayan intentado.",
     facturado: true,
   },
   {
@@ -57,17 +64,19 @@ function Fila({
 
     let acumuladas = 0;
     let acumFallidas = 0;
-    let anterior = Infinity;
-    let sinAvance = 0;
+    let desdeOrden: number | null = null;
+    let vueltas = 0;
 
-    // El servidor procesa un lote por request y devuelve cuánto falta.
-    // Se repite hasta vaciar la cola, mostrando avance en cada vuelta.
+    // El servidor procesa un lote por request y devuelve hasta dónde llegó.
+    // Se avanza con ese cursor hasta agotar la colección: mirar sólo `pending`
+    // no alcanza, porque hay fotos que nunca salen del filtro (una sin dorsal
+    // visible sigue sin dorsal por más veces que se la procese).
     try {
       for (;;) {
         const res = await fetch("/api/reprocess", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collectionId, kind: accion.kind }),
+          body: JSON.stringify({ collectionId, kind: accion.kind, desdeOrden }),
         });
 
         const data = (await res.json().catch(() => null)) as {
@@ -76,6 +85,8 @@ function Fila({
           failed: number;
           errores?: string[];
           error?: string;
+          ultimoOrden?: number | null;
+          agotado?: boolean;
         } | null;
 
         if (!res.ok) {
@@ -90,17 +101,16 @@ function Fila({
         setRestantes(data.pending);
         if (data.errores?.length) setMotivo(data.errores[0]!);
 
-        if (data.pending === 0) break;
+        if (data.agotado) break;
 
-        // Freno de mano: si la cola no baja, algo devuelve las mismas fotos una
-        // y otra vez. Seguir sería un loop infinito repitiendo (y pagando) el
-        // mismo trabajo, así que cortamos a las dos vueltas sin avance.
-        if (data.pending >= anterior) {
-          if (++sinAvance >= 2) break;
-        } else {
-          sinAvance = 0;
-        }
-        anterior = data.pending;
+        // Si el cursor no avanzó, el servidor está devolviendo lo mismo una y
+        // otra vez. Cortamos antes de repetir (y volver a pagar) el trabajo.
+        const siguiente = data.ultimoOrden ?? null;
+        if (siguiente === null || siguiente === desdeOrden) break;
+        desdeOrden = siguiente;
+
+        // Cinturón por si algo se descontrola del lado del servidor.
+        if (++vueltas > 2000) break;
       }
       setEstado("listo");
       onTerminar();

@@ -372,13 +372,14 @@ export const photoRouter = createTRPCRouter({
     .input(z.object({ collectionId: z.string() }))
     .query(async ({ ctx, input }) => {
       const { collectionId } = input;
-      const [total, ocr, faces, watermark] = await Promise.all([
+      const [total, ocr, ocrRetry, faces, watermark] = await Promise.all([
         ctx.db.photo.count({ where: { collectionId } }),
         ctx.db.photo.count({ where: { collectionId, ocrAttemptedAt: null } }),
+        ctx.db.photo.count({ where: { collectionId, bibNumber: null } }),
         ctx.db.photo.count({ where: { collectionId, faceAttemptedAt: null } }),
         ctx.db.photo.count({ where: { collectionId, previewKey: null } }),
       ]);
-      return { total, ocr, faces, watermark };
+      return { total, ocr, "ocr-retry": ocrRetry, faces, watermark };
     }),
 
   listUnwatermarked: protectedProcedure
