@@ -372,14 +372,32 @@ export const photoRouter = createTRPCRouter({
     .input(z.object({ collectionId: z.string() }))
     .query(async ({ ctx, input }) => {
       const { collectionId } = input;
-      const [total, ocr, ocrRetry, faces, watermark] = await Promise.all([
-        ctx.db.photo.count({ where: { collectionId } }),
-        ctx.db.photo.count({ where: { collectionId, ocrAttemptedAt: null } }),
-        ctx.db.photo.count({ where: { collectionId, bibNumber: null } }),
-        ctx.db.photo.count({ where: { collectionId, faceAttemptedAt: null } }),
-        ctx.db.photo.count({ where: { collectionId, previewKey: null } }),
-      ]);
-      return { total, ocr, "ocr-retry": ocrRetry, faces, watermark };
+      // Una sola consulta con FILTER en vez de cinco counts. Eran cinco viajes
+      // al pooler de Supabase y el panel tardaba ~2,2 s en cargar; así es un
+      // viaje y un solo recorrido de la tabla.
+      const [row] = await ctx.db.$queryRaw<
+        {
+          total: number;
+          ocr: number;
+          ocr_retry: number;
+          faces: number;
+          watermark: number;
+        }[]
+      >`
+        SELECT count(*)::int AS total,
+               count(*) FILTER (WHERE "ocrAttemptedAt" IS NULL)::int  AS ocr,
+               count(*) FILTER (WHERE "bibNumber" IS NULL)::int       AS ocr_retry,
+               count(*) FILTER (WHERE "faceAttemptedAt" IS NULL)::int AS faces,
+               count(*) FILTER (WHERE "previewKey" IS NULL)::int      AS watermark
+        FROM "Photo" WHERE "collectionId" = ${collectionId}
+      `;
+      return {
+        total: row?.total ?? 0,
+        ocr: row?.ocr ?? 0,
+        "ocr-retry": row?.ocr_retry ?? 0,
+        faces: row?.faces ?? 0,
+        watermark: row?.watermark ?? 0,
+      };
     }),
 
   listUnwatermarked: protectedProcedure

@@ -25,11 +25,16 @@ import { isVideoMimeType } from "~/lib/video-utils";
 const BATCH = 12;
 
 /**
- * Techo de tiempo por request. Es lo que garantiza que la respuesta llegue
- * antes de que la corte el proxy (nginx corta a los 60 s por defecto). Cuando
- * se agota, se devuelve lo hecho hasta ahí y el cliente pide el lote siguiente.
+ * Techo de tiempo por request, para que la respuesta llegue antes de que la
+ * corte el proxy.
+ *
+ * Es un techo blando: se chequea ANTES de tomar cada foto, así que en el peor
+ * caso el request dura esto más lo que tarde la última tanda en curso. Con
+ * llamadas a Rekognition de ~2 s eso da margen de sobra; se bajó de 20 s
+ * cuando en producción las llamadas tardaban ~11 s y el proxy devolvía 504
+ * aunque el servidor terminara el trabajo.
  */
-const PRESUPUESTO_MS = 20_000;
+const PRESUPUESTO_MS = 12_000;
 
 export type ReprocessKind = "ocr" | "ocr-retry" | "faces" | "watermark";
 

@@ -44,11 +44,16 @@ function Fila({
   collectionId,
   accion,
   pendientes,
+  bloqueado,
+  onArrancar,
   onTerminar,
 }: {
   collectionId: string;
   accion: (typeof ACCIONES)[number];
   pendientes: number;
+  /** Otra acción está corriendo. Ver `corriendo` en ReprocessPanel. */
+  bloqueado: boolean;
+  onArrancar: () => void;
   onTerminar: () => void;
 }) {
   const [estado, setEstado] = useState<Estado>("idle");
@@ -58,9 +63,11 @@ function Fila({
   const [motivo, setMotivo] = useState<string | null>(null);
 
   const correr = async () => {
+    onArrancar();
     setEstado("corriendo");
     setHechas(0);
     setFallidas(0);
+    setMotivo(null);
 
     let acumuladas = 0;
     let acumFallidas = 0;
@@ -118,6 +125,7 @@ function Fila({
       console.error("[reprocess]", err);
       setMotivo(err instanceof Error ? err.message : String(err));
       setEstado("error");
+      onTerminar();
     }
   };
 
@@ -199,7 +207,9 @@ function Fila({
         ) : (
           <button
             onClick={() => (accion.facturado ? setEstado("confirmando") : void correr())}
-            className="font-mono text-[10px] uppercase tracking-[0.14em] border border-[color:var(--color-grey-300)] px-4 py-2 hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] text-[color:var(--color-grey-700)] transition-colors whitespace-nowrap"
+            disabled={bloqueado}
+            title={bloqueado ? "Esperá a que termine la acción en curso" : undefined}
+            className="font-mono text-[10px] uppercase tracking-[0.14em] border border-[color:var(--color-grey-300)] px-4 py-2 hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] text-[color:var(--color-grey-700)] transition-colors whitespace-nowrap disabled:opacity-30 disabled:pointer-events-none"
           >
             {pendientes.toLocaleString("es-AR")} pendiente{pendientes !== 1 ? "s" : ""}
           </button>
@@ -214,6 +224,11 @@ export function ReprocessPanel({ collectionId }: { collectionId: string }) {
     { collectionId },
     { refetchOnWindowFocus: false },
   );
+
+  // Una acción por vez. Corriendo las tres a la vez son nueve descargas y nueve
+  // llamadas a AWS peleando por el mismo enlace: cada request tarda el triple y
+  // termina cortado por el proxy aunque el trabajo se haya hecho.
+  const [corriendo, setCorriendo] = useState<Kind | null>(null);
 
   if (!data) {
     return (
@@ -237,7 +252,12 @@ export function ReprocessPanel({ collectionId }: { collectionId: string }) {
             collectionId={collectionId}
             accion={a}
             pendientes={data[a.kind]}
-            onTerminar={() => void refetch()}
+            bloqueado={corriendo !== null && corriendo !== a.kind}
+            onArrancar={() => setCorriendo(a.kind)}
+            onTerminar={() => {
+              setCorriendo(null);
+              void refetch();
+            }}
           />
         ))}
       </div>

@@ -64,20 +64,29 @@ export type PhotoBytes = {
 };
 
 /**
- * Escalones para meter una foto bajo el límite de Rekognition perdiendo la
- * menor resolución posible. Se toma el primero que entra.
+ * Peso al que apuntamos para mandar a Rekognition.
  *
- * Antes esto era un único paso a 1920 px, que en fotos de evento es demasiado:
- * un original de 6000 px se reducía 3,1× y una cara de 120 px quedaba en 38 —
- * por debajo de los ~40x40 px que Rekognition necesita para detectarla. De ahí
- * salían los `indexed 0 faces` y que la búsqueda por selfie no encontrara nada.
- * Bajar calidad cuesta mucho menos detección que bajar resolución.
+ * No es un límite de la API —ese es REKOGNITION_MAX_BYTES— sino de velocidad.
+ * Medido en producción: mandar 4,4 MB desde el VPS hasta la región de AWS daba
+ * ~11 s por llamada, y el request moría contra el proxy antes de responder.
+ * Casi todo ese tiempo es subir los bytes.
+ */
+const REKOGNITION_TARGET_BYTES = 1_500_000;
+
+/**
+ * Escalones para achicar. El orden importa y no es casual: primero se baja
+ * CALIDAD a resolución completa, y sólo al final se toca la resolución.
+ *
+ * Son dos cosas distintas. La resolución define si Rekognition llega a detectar
+ * algo: una cara de 120 px sobrevive, una de 38 no, y un dorsal es texto chico.
+ * El peso define cuánto tarda en llegar. Se puede bajar mucho el peso con
+ * calidad JPEG sin perder casi nada de detección, así que eso es lo primero.
  */
 const ESCALONES_REKOGNITION: { width: number | null; quality: number }[] = [
-  { width: null, quality: 80 },
-  { width: 4096, quality: 80 },
-  { width: 3000, quality: 75 },
-  { width: 1920, quality: 80 },
+  { width: null, quality: 72 },
+  { width: null, quality: 58 },
+  { width: 2400, quality: 65 },
+  { width: 1600, quality: 70 },
 ];
 
 export async function loadPhotoBytes(
@@ -90,7 +99,8 @@ export async function loadPhotoBytes(
     return null;
   }
 
-  if (raw.byteLength <= REKOGNITION_MAX_BYTES) {
+  // Ya es liviana: mandarla tal cual y evitarse el re-encode.
+  if (raw.byteLength <= REKOGNITION_TARGET_BYTES) {
     return { raw, forRekognition: raw };
   }
 
@@ -102,19 +112,21 @@ export async function loadPhotoBytes(
     if (escalon.width) pipeline.resize({ width: escalon.width, withoutEnlargement: true });
     ultima = await pipeline.jpeg({ quality: escalon.quality }).toBuffer();
 
-    if (ultima.byteLength <= REKOGNITION_MAX_BYTES) {
+    if (ultima.byteLength <= REKOGNITION_TARGET_BYTES) {
       console.log(
-        `[${label}] Compressed ${raw.byteLength} → ${ultima.byteLength} bytes ` +
+        `[${label}] ${(raw.byteLength / 1e6).toFixed(1)}MB → ${(ultima.byteLength / 1e6).toFixed(2)}MB ` +
           `(${escalon.width ? `${escalon.width}px` : "resolución completa"}, q${escalon.quality})`,
       );
       return { raw, forRekognition: new Uint8Array(ultima) };
     }
   }
 
-  // Ningún escalón entró. Se manda el más chico igual: si Rekognition lo
-  // rechaza, el error queda logueado donde corresponde.
-  console.warn(
-    `[${label}] No se pudo bajar de ${REKOGNITION_MAX_BYTES} bytes: quedó en ${ultima!.byteLength}`,
+  // Ningún escalón llegó al objetivo de velocidad. Mientras entre en el límite
+  // duro de la API alcanza; sólo tarda más de lo que nos gustaría.
+  const nivel = ultima!.byteLength <= REKOGNITION_MAX_BYTES ? console.log : console.warn;
+  nivel(
+    `[${label}] ${(raw.byteLength / 1e6).toFixed(1)}MB → ${(ultima!.byteLength / 1e6).toFixed(2)}MB ` +
+      `(no llegó al objetivo de ${(REKOGNITION_TARGET_BYTES / 1e6).toFixed(1)}MB)`,
   );
   return { raw, forRekognition: new Uint8Array(ultima!) };
 }
