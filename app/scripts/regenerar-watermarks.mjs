@@ -7,9 +7,21 @@
  *
  *   cd ~/sinchifoto/app
  *   node scripts/regenerar-watermarks.mjs --dry            # sin escribir nada
- *   node scripts/regenerar-watermarks.mjs                  # todas las colecciones
+ *   node scripts/regenerar-watermarks.mjs                  # sólo las que no tienen preview
  *   node scripts/regenerar-watermarks.mjs --coleccion=<id>
  *   node scripts/regenerar-watermarks.mjs --concurrencia=8
+ *
+ * Cuando el preview EXISTE pero salió sin la marca encima —pasaba si no se
+ * podía bajar el PNG de la marca y entraba el texto translúcido de respaldo—
+ * hay dos modos más:
+ *
+ *   --verificar   baja cada preview, mide si tiene la marca, y rehace sólo los
+ *                 que no la tienen. Un preview pesa ~200 KB contra 4,4 MB del
+ *                 original, así que revisar sale mucho más barato que rehacer.
+ *   --forzar      rehace todos, tengan o no la marca. Es el martillo.
+ *
+ *   node scripts/regenerar-watermarks.mjs --coleccion=<id> --verificar
+ *   node scripts/regenerar-watermarks.mjs --coleccion=<id> --forzar
  *
  * Para que siga aunque cierres la terminal:
  *   nohup node scripts/regenerar-watermarks.mjs > watermarks.log 2>&1 &
@@ -37,9 +49,19 @@ const arg = (nombre, porDefecto) => {
   return encontrado ? encontrado.split("=")[1] : porDefecto;
 };
 const DRY = process.argv.includes("--dry");
+const FORZAR = process.argv.includes("--forzar");
+const VERIFICAR = process.argv.includes("--verificar");
 const COLECCION = arg("coleccion", null);
 const CONCURRENCIA = Number(arg("concurrencia", "6"));
 const LOTE = 50;
+
+/**
+ * Cuánto amarillo saturado tiene que tener un preview para considerarlo
+ * marcado. La marca de SINCHI es #FFE600 embaldosado y da 4-8% medido sobre
+ * previews reales; el texto translúcido de respaldo no llega a nada de eso.
+ * El umbral está bien por debajo de lo medido para no rehacer de más.
+ */
+const UMBRAL_AMARILLO = 0.015;
 
 const BUCKET = process.env.AWS_S3_BUCKET;
 const PREFIJO = (process.env.AWS_S3_PREFIX ?? "").replace(/\/?$/, "/");
@@ -135,6 +157,34 @@ async function composite(ancho, alto) {
   return { input: escalado, tile: true, blend: "over" };
 }
 
+/**
+ * Fracción de píxeles de amarillo saturado. Sirve para distinguir un preview
+ * con la marca de SINCHI de uno que salió con el texto de respaldo.
+ */
+async function amarillez(buf) {
+  const { data, info } = await sharp(buf)
+    .resize({ width: 400 })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  let amarillos = 0;
+  for (let i = 0; i < data.length; i += info.channels) {
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    if (r > 190 && g > 170 && b < 110 && r - b > 110) amarillos++;
+  }
+  return amarillos / (info.width * info.height);
+}
+
+/** ¿El preview que ya está subido tiene la marca? */
+async function yaTieneMarca(previewKey) {
+  try {
+    const buf = await bajar(previewKey);
+    return (await amarillez(buf)) >= UMBRAL_AMARILLO;
+  } catch {
+    // Si no se puede leer, se rehace: es más barato que dejar una sin marca.
+    return false;
+  }
+}
+
 async function procesar(foto) {
   const t0 = Date.now();
   const original = await bajar(foto.storageKey);
@@ -181,15 +231,49 @@ try {
   console.warn(`SIN watermark en ${CLAVE_WATERMARK} — se usa el texto PREVIEW`);
 }
 
+// Se puede indicar el evento por nombre en vez de por id, que es más fácil de
+// copiar bien desde el admin.
+const EVENTO = arg("evento", null);
+let coleccionId = COLECCION;
+
+if (EVENTO) {
+  const encontradas = await db.collection.findMany({
+    where: { title: { contains: EVENTO, mode: "insensitive" } },
+    select: { id: true, title: true, _count: { select: { photos: true } } },
+  });
+  if (encontradas.length === 0) {
+    console.error(`No hay ningún evento que contenga "${EVENTO}".`);
+    await db.$disconnect();
+    process.exit(1);
+  }
+  if (encontradas.length > 1) {
+    console.error(`"${EVENTO}" coincide con varios eventos. Usá --coleccion=<id>:`);
+    for (const c of encontradas) console.error(`   ${c.id}  ${c.title} (${c._count.photos} fotos)`);
+    await db.$disconnect();
+    process.exit(1);
+  }
+  coleccionId = encontradas[0].id;
+  console.log(`evento: "${encontradas[0].title}"  (${coleccionId})`);
+}
+
+// En modo normal sólo interesan las que no tienen preview. Con --forzar o
+// --verificar hay que mirar todas, porque el preview existe y el problema está
+// adentro del archivo.
+const revisarTodas = FORZAR || VERIFICAR;
 const where = {
-  previewKey: null,
-  ...(COLECCION ? { collectionId: COLECCION } : {}),
+  ...(revisarTodas ? {} : { previewKey: null }),
+  ...(coleccionId ? { collectionId: coleccionId } : {}),
 };
 
 const total = await db.photo.count({ where });
+const modo = FORZAR
+  ? "REHACER TODAS"
+  : VERIFICAR
+    ? "verificar y rehacer las que no tengan marca"
+    : "sólo las que no tienen preview";
 console.log(
-  `${total} fotos sin marca de agua${COLECCION ? ` en ${COLECCION}` : " (todas las colecciones)"}` +
-    `${DRY ? "  [DRY RUN, no escribe nada]" : ""}\n`,
+  `${total} fotos a revisar${COLECCION ? ` en ${COLECCION}` : " (todas las colecciones)"}` +
+    `  ·  modo: ${modo}${DRY ? "  [DRY RUN, no escribe nada]" : ""}\n`,
 );
 
 if (total === 0) {
@@ -199,41 +283,75 @@ if (total === 0) {
 
 let hechas = 0;
 let fallidas = 0;
+let yaEstaban = 0;
+let vistas = 0;
 const arranque = Date.now();
 const tiempos = { bajada: 0, imagen: 0, subida: 0 };
 
+// Cursor sobre `order`, más las ya vistas en memoria. Con --forzar y
+// --verificar la foto no sale del filtro al procesarla, así que sin cursor el
+// lote traería las mismas cincuenta para siempre. `order` no es único —lo
+// calcula un count() que bajo concurrencia repite— por eso va con `gte` y se
+// descartan las repetidas en vez de avanzar con `gt`, que saltearía fotos.
+let desdeOrden = 0;
+const yaVistas = new Set();
+
 for (;;) {
-  const lote = await db.photo.findMany({
-    where,
-    select: { id: true, storageKey: true, filename: true },
-    orderBy: { order: "asc" },
+  const crudo = await db.photo.findMany({
+    where: { ...where, order: { gte: desdeOrden } },
+    select: { id: true, storageKey: true, filename: true, previewKey: true, order: true },
+    orderBy: [{ order: "asc" }, { id: "asc" }],
     take: LOTE,
-    // En dry run nada sale del filtro, así que hay que avanzar a mano.
-    ...(DRY ? { skip: hechas + fallidas } : {}),
   });
-  if (lote.length === 0) break;
+  if (crudo.length === 0) break;
+
+  const lote = crudo.filter((p) => !yaVistas.has(p.id));
+  if (lote.length === 0) {
+    desdeOrden = crudo[crudo.length - 1].order + 1;
+    continue;
+  }
 
   let siguiente = 0;
   const worker = async () => {
     while (siguiente < lote.length) {
       const foto = lote[siguiente++];
+      yaVistas.add(foto.id);
+      if (foto.order > desdeOrden) desdeOrden = foto.order;
+      vistas++;
+
       try {
+        // En modo verificar se mira el preview antes de rehacerlo: bajar
+        // ~200 KB para comprobar sale mucho más barato que bajar 4,4 MB y
+        // reprocesar una foto que ya estaba bien.
+        if (VERIFICAR && foto.previewKey && (await yaTieneMarca(foto.previewKey))) {
+          yaEstaban++;
+          if (vistas % 25 === 0) {
+            console.log(`[${String(vistas).padStart(4)}/${total}] ${yaEstaban} ya tenían marca, ${hechas} rehechas`);
+          }
+          continue;
+        }
+
+        if (DRY) {
+          hechas++;
+          console.log(`[${String(vistas).padStart(4)}/${total}] ${foto.filename.slice(-28)}  -> se rehace`);
+          continue;
+        }
+
         const t = await procesar(foto);
         hechas++;
         tiempos.bajada += t.msBajada;
         tiempos.imagen += t.msImagen;
         tiempos.subida += t.msSubida;
         const transcurrido = (Date.now() - arranque) / 1000;
-        const restantes = total - hechas - fallidas;
-        const eta = hechas > 0 ? Math.ceil((restantes * (transcurrido / hechas)) / 60) : "?";
+        const eta = vistas > 0 ? Math.ceil(((total - vistas) * (transcurrido / vistas)) / 60) : "?";
         console.log(
-          `[${String(hechas + fallidas).padStart(4)}/${total}] ${foto.filename.slice(-28).padEnd(28)} ` +
+          `[${String(vistas).padStart(4)}/${total}] ${foto.filename.slice(-28).padEnd(28)} ` +
             `bajada ${String(t.msBajada).padStart(6)}ms  imagen ${String(t.msImagen).padStart(5)}ms  ` +
             `subida ${String(t.msSubida).padStart(5)}ms   faltan ~${eta} min`,
         );
       } catch (err) {
         fallidas++;
-        console.error(`[${String(hechas + fallidas).padStart(4)}/${total}] FALLÓ ${foto.id}: ${err.name} ${err.message?.slice(0, 90)}`);
+        console.error(`[${String(vistas).padStart(4)}/${total}] FALLÓ ${foto.id}: ${err.name} ${err.message?.slice(0, 90)}`);
       }
     }
   };
@@ -241,13 +359,12 @@ for (;;) {
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCIA, lote.length) }, worker),
   );
-
-  if (DRY) break;
 }
 
 const seg = (Date.now() - arranque) / 1000;
 console.log(`\n── listo en ${(seg / 60).toFixed(1)} min`);
-console.log(`   hechas ${hechas}   fallidas ${fallidas}`);
+console.log(`   revisadas ${vistas}   rehechas ${hechas}   fallidas ${fallidas}` +
+  (VERIFICAR ? `   ya tenían marca ${yaEstaban}` : ""));
 if (hechas > 0) {
   console.log(
     `   promedio por foto: bajada ${Math.round(tiempos.bajada / hechas)}ms · ` +
