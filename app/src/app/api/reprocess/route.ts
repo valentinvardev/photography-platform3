@@ -52,7 +52,34 @@ function pendingFilter(kind: ReprocessKind) {
   }
 }
 
+/** Mensaje corto y útil de un error desconocido. */
+function mensajeDeError(err: unknown): string {
+  if (err instanceof Error) {
+    // Prisma pone el detalle que importa en la primera línea con contenido.
+    const primera = err.message
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .pop();
+    return (primera ?? err.message).slice(0, 300);
+  }
+  return String(err).slice(0, 300);
+}
+
 export async function POST(req: NextRequest) {
+  try {
+    return await procesar(req);
+  } catch (err) {
+    // Sin esto, cualquier excepción salía como un 500 sin cuerpo y el panel
+    // sólo podía decir "Falló". El caso típico: se desplegó el código antes de
+    // correr `db push` y Prisma no encuentra una columna.
+    const detalle = mensajeDeError(err);
+    console.error("[reprocess] error no controlado:", err);
+    return NextResponse.json({ error: detalle }, { status: 500 });
+  }
+}
+
+async function procesar(req: NextRequest) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -93,6 +120,12 @@ export async function POST(req: NextRequest) {
 
   let processed = 0;
   let failed = 0;
+  /** Muestra de errores, para que el panel pueda decir qué pasó. */
+  const errores: string[] = [];
+  const anotar = (photoId: string, motivo: string) => {
+    failed++;
+    if (errores.length < 3) errores.push(`${photoId.slice(-6)}: ${motivo}`);
+  };
 
   // Pool acotado. El watermark es CPU (sharp), OCR e indexado son llamadas a
   // AWS, así que el watermark aguanta menos tareas simultáneas.
@@ -110,8 +143,16 @@ export async function POST(req: NextRequest) {
 
       try {
         if (kind === "watermark") {
-          if (isVideo) await runVideoWatermark(photo.id);
-          else await runWatermark(photo.id);
+          // runWatermark no lanza cuando no puede: devuelve previewKey null.
+          // Si eso contara como procesada, la cola nunca bajaría y el fallo
+          // quedaría invisible.
+          const { previewKey } = isVideo
+            ? await runVideoWatermark(photo.id)
+            : await runWatermark(photo.id);
+          if (!previewKey) {
+            anotar(photo.id, "no se pudo generar el preview (ver logs)");
+            continue;
+          }
         } else if (isVideo) {
           // Los videos no van a Rekognition: no hay nada que reconocer y se
           // pagaría igual. Se saltean sin contarlos como error.
@@ -123,14 +164,17 @@ export async function POST(req: NextRequest) {
           });
           if (!record) continue;
           const bytes = await loadPhotoBytes(record.storageKey, kind);
-          if (!bytes) { failed++; continue; }
+          if (!bytes) {
+            anotar(photo.id, "no se pudo descargar el original");
+            continue;
+          }
 
           if (kind === "ocr") await runOcr(photo.id, bytes);
           else await runFaceIndex(photo.id, collectionId, bytes);
         }
         processed++;
       } catch (err) {
-        failed++;
+        anotar(photo.id, mensajeDeError(err));
         console.error(`[reprocess:${kind}] photoId=${photo.id} falló:`, err);
       }
     }
@@ -143,8 +187,9 @@ export async function POST(req: NextRequest) {
   const pending = await db.photo.count({ where });
 
   console.log(
-    `[reprocess:${kind}] collectionId=${collectionId} procesadas=${processed} fallidas=${failed} pendientes=${pending}`,
+    `[reprocess:${kind}] collectionId=${collectionId} procesadas=${processed} fallidas=${failed} pendientes=${pending}` +
+      (errores.length ? ` errores=${JSON.stringify(errores)}` : ""),
   );
 
-  return NextResponse.json({ processed, pending, failed });
+  return NextResponse.json({ processed, pending, failed, errores });
 }

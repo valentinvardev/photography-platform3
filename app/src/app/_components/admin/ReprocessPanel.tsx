@@ -48,6 +48,7 @@ function Fila({
   const [hechas, setHechas] = useState(0);
   const [fallidas, setFallidas] = useState(0);
   const [restantes, setRestantes] = useState(pendientes);
+  const [motivo, setMotivo] = useState<string | null>(null);
 
   const correr = async () => {
     setEstado("corriendo");
@@ -68,19 +69,26 @@ function Fila({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ collectionId, kind: accion.kind }),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        const data = (await res.json()) as {
+        const data = (await res.json().catch(() => null)) as {
           processed: number;
           pending: number;
           failed: number;
-        };
+          errores?: string[];
+          error?: string;
+        } | null;
+
+        if (!res.ok) {
+          throw new Error(data?.error ?? `HTTP ${res.status}`);
+        }
+        if (!data) throw new Error("respuesta ilegible del servidor");
 
         acumuladas += data.processed;
         acumFallidas += data.failed;
         setHechas(acumuladas);
         setFallidas(acumFallidas);
         setRestantes(data.pending);
+        if (data.errores?.length) setMotivo(data.errores[0]!);
 
         if (data.pending === 0) break;
 
@@ -98,6 +106,7 @@ function Fila({
       onTerminar();
     } catch (err) {
       console.error("[reprocess]", err);
+      setMotivo(err instanceof Error ? err.message : String(err));
       setEstado("error");
     }
   };
@@ -128,8 +137,20 @@ function Fila({
           </p>
         )}
         {estado === "error" && (
-          <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-safelight)]">
-            Falló · {hechas} alcanzaron a procesarse
+          <>
+            <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-safelight)]">
+              Falló · {hechas} alcanzaron a procesarse
+            </p>
+            {motivo && (
+              <p className="mt-1 font-mono text-[10px] leading-[1.5] text-[color:var(--color-grey-600)] break-words max-w-[520px]">
+                {motivo}
+              </p>
+            )}
+          </>
+        )}
+        {estado === "listo" && motivo && (
+          <p className="mt-1 font-mono text-[10px] leading-[1.5] text-[color:var(--color-grey-600)] break-words max-w-[520px]">
+            {motivo}
           </p>
         )}
         {estado === "confirmando" && (
