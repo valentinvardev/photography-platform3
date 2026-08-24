@@ -62,6 +62,36 @@ function Fila({
   const [restantes, setRestantes] = useState(pendientes);
   const [motivo, setMotivo] = useState<string | null>(null);
 
+  type Respuesta = {
+    procesadas: number;
+    fallidas: number;
+    pendientes: number;
+    errores: string[];
+    corriendo: boolean;
+    error: string | null;
+  };
+
+  const pedir = async (que: "arrancar" | "estado" | "detener"): Promise<Respuesta> => {
+    const res = await fetch("/api/reprocess", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ collectionId, kind: accion.kind, accion: que }),
+    });
+    const data = (await res.json().catch(() => null)) as
+      | (Partial<Respuesta> & { error?: string })
+      | null;
+    if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+    if (!data) throw new Error("respuesta ilegible del servidor");
+    return {
+      procesadas: data.procesadas ?? 0,
+      fallidas: data.fallidas ?? 0,
+      pendientes: data.pendientes ?? 0,
+      errores: data.errores ?? [],
+      corriendo: data.corriendo ?? false,
+      error: data.error ?? null,
+    };
+  };
+
   const correr = async () => {
     onArrancar();
     setEstado("corriendo");
@@ -69,55 +99,28 @@ function Fila({
     setFallidas(0);
     setMotivo(null);
 
-    let acumuladas = 0;
-    let acumFallidas = 0;
-    let desdeOrden: number | null = null;
-    let vueltas = 0;
+    // El request sólo lanza el trabajo y vuelve enseguida. Después se pregunta
+    // cómo va: así ninguna llamada queda abierta el tiempo suficiente como para
+    // que la corte el proxy, que es lo que rompía todo antes.
+    const aplicar = (r: Respuesta) => {
+      setHechas(r.procesadas);
+      setFallidas(r.fallidas);
+      setRestantes(r.pendientes);
+      if (r.errores.length) setMotivo(r.errores[0]!);
+      else if (r.error) setMotivo(r.error);
+    };
 
-    // El servidor procesa un lote por request y devuelve hasta dónde llegó.
-    // Se avanza con ese cursor hasta agotar la colección: mirar sólo `pending`
-    // no alcanza, porque hay fotos que nunca salen del filtro (una sin dorsal
-    // visible sigue sin dorsal por más veces que se la procese).
     try {
+      aplicar(await pedir("arrancar"));
+
       for (;;) {
-        const res = await fetch("/api/reprocess", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ collectionId, kind: accion.kind, desdeOrden }),
-        });
-
-        const data = (await res.json().catch(() => null)) as {
-          processed: number;
-          pending: number;
-          failed: number;
-          errores?: string[];
-          error?: string;
-          ultimoOrden?: number | null;
-          agotado?: boolean;
-        } | null;
-
-        if (!res.ok) {
-          throw new Error(data?.error ?? `HTTP ${res.status}`);
+        await new Promise((r) => setTimeout(r, 2000));
+        const r = await pedir("estado");
+        aplicar(r);
+        if (!r.corriendo) {
+          if (r.error) throw new Error(r.error);
+          break;
         }
-        if (!data) throw new Error("respuesta ilegible del servidor");
-
-        acumuladas += data.processed;
-        acumFallidas += data.failed;
-        setHechas(acumuladas);
-        setFallidas(acumFallidas);
-        setRestantes(data.pending);
-        if (data.errores?.length) setMotivo(data.errores[0]!);
-
-        if (data.agotado) break;
-
-        // Si el cursor no avanzó, el servidor está devolviendo lo mismo una y
-        // otra vez. Cortamos antes de repetir (y volver a pagar) el trabajo.
-        const siguiente = data.ultimoOrden ?? null;
-        if (siguiente === null || siguiente === desdeOrden) break;
-        desdeOrden = siguiente;
-
-        // Cinturón por si algo se descontrola del lado del servidor.
-        if (++vueltas > 2000) break;
       }
       setEstado("listo");
       onTerminar();
@@ -126,6 +129,15 @@ function Fila({
       setMotivo(err instanceof Error ? err.message : String(err));
       setEstado("error");
       onTerminar();
+    }
+  };
+
+  /** El polling de `correr` ve `corriendo: false` en la vuelta siguiente y cierra solo. */
+  const detenerTrabajo = async () => {
+    try {
+      await pedir("detener");
+    } catch (err) {
+      console.error("[reprocess] detener", err);
     }
   };
 
@@ -185,10 +197,18 @@ function Fila({
             nada pendiente
           </span>
         ) : estado === "corriendo" ? (
-          <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)]">
-            <span className="w-3 h-3 border border-[color:var(--color-grey-300)] border-t-[color:var(--color-ink)] rounded-full animate-spin" />
-            procesando
-          </span>
+          <>
+            <span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)]">
+              <span className="w-3 h-3 border border-[color:var(--color-grey-300)] border-t-[color:var(--color-ink)] rounded-full animate-spin" />
+              procesando
+            </span>
+            <button
+              onClick={() => void detenerTrabajo()}
+              className="font-mono text-[10px] uppercase tracking-[0.14em] text-[color:var(--color-grey-500)] border border-[color:var(--color-grey-300)] px-3 py-2 hover:border-[color:var(--color-ink)] hover:text-[color:var(--color-ink)] transition-colors"
+            >
+              Detener
+            </button>
+          </>
         ) : estado === "confirmando" ? (
           <>
             <button
