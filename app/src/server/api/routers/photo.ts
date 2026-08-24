@@ -375,7 +375,7 @@ export const photoRouter = createTRPCRouter({
       const [total, ocr, faces, watermark] = await Promise.all([
         ctx.db.photo.count({ where: { collectionId } }),
         ctx.db.photo.count({ where: { collectionId, ocrAttemptedAt: null } }),
-        ctx.db.photo.count({ where: { collectionId, faceRecords: { none: {} } } }),
+        ctx.db.photo.count({ where: { collectionId, faceAttemptedAt: null } }),
         ctx.db.photo.count({ where: { collectionId, previewKey: null } }),
       ]);
       return { total, ocr, faces, watermark };

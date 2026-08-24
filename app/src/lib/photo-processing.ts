@@ -345,6 +345,14 @@ export async function runFaceIndex(
     const indexed = result.FaceRecords ?? [];
     console.log(`[FaceIndex] photoId=${photoId} indexed ${indexed.length} faces`);
 
+    // Se marca el intento aunque no haya salido ninguna cara. Sin esto, una
+    // foto donde no hay rostro detectable queda para siempre en la cola de
+    // "pendientes" y cada reprocesado la vuelve a pagar.
+    await db.photo.update({
+      where: { id: photoId },
+      data: { faceAttemptedAt: new Date() },
+    });
+
     for (const fr of indexed) {
       const faceId = fr.Face?.FaceId;
       if (!faceId) continue;

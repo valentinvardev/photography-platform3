@@ -18,20 +18,35 @@ import { isVideoMimeType } from "~/lib/video-utils";
  *    `pending` llega a 0, así cada request es corto y hay progreso real.
  */
 
-/** Fotos por request. Suficiente para amortizar, corto para no timeoutear. */
-const BATCH = 40;
+/**
+ * Techo de fotos por request. Bajo a propósito: cada foto puede pesar 15 MB y
+ * hay que bajarla antes de procesarla.
+ */
+const BATCH = 12;
+
+/**
+ * Techo de tiempo por request. Es lo que garantiza que la respuesta llegue
+ * antes de que la corte el proxy (nginx corta a los 60 s por defecto). Cuando
+ * se agota, se devuelve lo hecho hasta ahí y el cliente pide el lote siguiente.
+ */
+const PRESUPUESTO_MS = 20_000;
 
 export type ReprocessKind = "ocr" | "faces" | "watermark";
 
-/** Qué le falta a cada foto, por tipo de trabajo. */
+/**
+ * Qué le falta a cada foto.
+ *
+ * Para OCR y rostros el filtro es "nunca se intentó", no "no tiene resultado":
+ * la mayoría de las fotos no tiene un dorsal visible, y muchas no tienen ningún
+ * rostro detectable. Filtrar por resultado las dejaría en la cola para siempre
+ * y cada pasada las volvería a pagar.
+ */
 function pendingFilter(kind: ReprocessKind) {
   switch (kind) {
     case "ocr":
-      // Nunca se intentó. No alcanza con "no tiene dorsal": la mayoría de las
-      // fotos no tiene un dorsal visible y ya se procesaron bien.
       return { ocrAttemptedAt: null };
     case "faces":
-      return { faceRecords: { none: {} } };
+      return { faceAttemptedAt: null };
     case "watermark":
       return { previewKey: null };
   }
@@ -81,11 +96,13 @@ export async function POST(req: NextRequest) {
 
   // Pool acotado. El watermark es CPU (sharp), OCR e indexado son llamadas a
   // AWS, así que el watermark aguanta menos tareas simultáneas.
-  const concurrency = kind === "watermark" ? 2 : 4;
+  const concurrency = kind === "watermark" ? 2 : 3;
   let next = 0;
+  const inicio = Date.now();
 
   const worker = async () => {
     while (next < batch.length) {
+      if (Date.now() - inicio > PRESUPUESTO_MS) break;
       const photo = batch[next++]!;
       const isVideo =
         isVideoMimeType(photo.mimeType) ||

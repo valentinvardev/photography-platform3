@@ -6,14 +6,11 @@ import { api } from "~/trpc/react";
 type Kind = "ocr" | "faces" | "watermark";
 type Estado = "idle" | "confirmando" | "corriendo" | "listo" | "error";
 
-/** Costo por imagen en Rekognition (primer millón/mes). */
-const USD_POR_IMAGEN = 0.001;
-
 const ACCIONES: {
   kind: Kind;
   titulo: string;
   descripcion: string;
-  /** Si le cuesta plata al usuario, se pide confirmación con el costo estimado. */
+  /** Si dispara trabajo que no se puede deshacer, se pide confirmación. */
   facturado: boolean;
 }[] = [
   {
@@ -59,6 +56,8 @@ function Fila({
 
     let acumuladas = 0;
     let acumFallidas = 0;
+    let anterior = Infinity;
+    let sinAvance = 0;
 
     // El servidor procesa un lote por request y devuelve cuánto falta.
     // Se repite hasta vaciar la cola, mostrando avance en cada vuelta.
@@ -83,9 +82,17 @@ function Fila({
         setFallidas(acumFallidas);
         setRestantes(data.pending);
 
-        // Nada procesado y todavía queda cola = no avanza. Cortamos para no
-        // quedar en un loop infinito golpeando el servidor.
-        if (data.pending === 0 || data.processed === 0) break;
+        if (data.pending === 0) break;
+
+        // Freno de mano: si la cola no baja, algo devuelve las mismas fotos una
+        // y otra vez. Seguir sería un loop infinito repitiendo (y pagando) el
+        // mismo trabajo, así que cortamos a las dos vueltas sin avance.
+        if (data.pending >= anterior) {
+          if (++sinAvance >= 2) break;
+        } else {
+          sinAvance = 0;
+        }
+        anterior = data.pending;
       }
       setEstado("listo");
       onTerminar();
@@ -127,10 +134,8 @@ function Fila({
         )}
         {estado === "confirmando" && (
           <p className="mt-2 font-sans text-[12px] leading-[1.5] text-[color:var(--color-ink)]">
-            Son {pendientes.toLocaleString("es-AR")} llamadas a Rekognition,
-            aproximadamente{" "}
-            <strong>USD {(pendientes * USD_POR_IMAGEN).toFixed(2)}</strong>. No
-            se puede deshacer.
+            Se van a procesar {pendientes.toLocaleString("es-AR")} fotos. No se
+            puede deshacer.
           </p>
         )}
       </div>
