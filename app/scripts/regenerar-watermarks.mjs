@@ -38,6 +38,10 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import {
+  CloudFrontClient,
+  CreateInvalidationCommand,
+} from "@aws-sdk/client-cloudfront";
 
 for (const line of readFileSync(".env", "utf8").split(/\r?\n/)) {
   const m = /^\s*([A-Z0-9_]+)\s*=\s*"?([^"]*)"?\s*$/.exec(line);
@@ -51,6 +55,9 @@ const arg = (nombre, porDefecto) => {
 const DRY = process.argv.includes("--dry");
 const FORZAR = process.argv.includes("--forzar");
 const VERIFICAR = process.argv.includes("--verificar");
+/** Sólo vaciar la caché, sin regenerar. Probalo primero: si los previews en S3
+ *  ya están bien, con esto solo alcanza y no hay que reprocesar nada. */
+const SOLO_INVALIDAR = process.argv.includes("--solo-invalidar");
 const COLECCION = arg("coleccion", null);
 const CONCURRENCIA = Number(arg("concurrencia", "6"));
 const LOTE = 50;
@@ -80,6 +87,57 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
+
+/**
+ * Vacía la caché de CloudFront para los previews.
+ *
+ * Hace falta porque el preview se sobrescribe con la MISMA key
+ * (previews/{id}.jpg): para CloudFront la URL no cambió, así que sigue
+ * sirviendo la copia vieja hasta que venza su TTL, por más que el archivo
+ * nuevo ya esté en S3. Regenerar sin esto es trabajo invisible.
+ *
+ * Va con comodín a propósito: una invalidación de `/prefijo/previews/*` cuenta
+ * como un solo camino, en vez de uno por foto.
+ */
+async function invalidarCloudFront() {
+  const dist = process.env.CLOUDFRONT_DISTRIBUTION_ID;
+  if (!dist) {
+    console.warn("Sin CLOUDFRONT_DISTRIBUTION_ID: no se puede vaciar la caché.");
+    return;
+  }
+  const cf = new CloudFrontClient({
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+  const camino = `/${PREFIJO}previews/*`;
+  try {
+    const r = await cf.send(
+      new CreateInvalidationCommand({
+        DistributionId: dist,
+        InvalidationBatch: {
+          CallerReference: `regen-${Date.now()}`,
+          Paths: { Quantity: 1, Items: [camino] },
+        },
+      }),
+    );
+    console.log(`caché de CloudFront vaciada para ${camino}  (${r.Invalidation?.Id})`);
+    console.log("Tarda unos minutos en propagarse a todos los edges.");
+  } catch (err) {
+    console.error(`\nNo se pudo vaciar la caché de CloudFront: ${err.name}`);
+    if (err.name === "AccessDenied" || err.name === "AccessDeniedException") {
+      console.error("Falta el permiso cloudfront:CreateInvalidation en el usuario IAM.");
+      console.error("Sin eso, los previews nuevos no se ven hasta que venza el TTL.");
+    }
+  }
+}
+
+if (SOLO_INVALIDAR) {
+  await invalidarCloudFront();
+  process.exit(0);
+}
 
 const { PrismaClient } = await import("../generated/prisma/index.js");
 const db = new PrismaClient({
@@ -243,7 +301,12 @@ if (EVENTO) {
   });
   if (encontradas.length === 0) {
     console.error(`No hay ningún evento que contenga "${EVENTO}".`);
-    await db.$disconnect();
+    if (!DRY && hechas > 0) {
+  console.log("");
+  await invalidarCloudFront();
+}
+
+await db.$disconnect();
     process.exit(1);
   }
   if (encontradas.length > 1) {

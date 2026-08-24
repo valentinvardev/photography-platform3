@@ -32,6 +32,14 @@
         "rekognition:DeleteFaces"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "CloudFront",
+      "Effect": "Allow",
+      "Action": [
+        "cloudfront:CreateInvalidation"
+      ],
+      "Resource": "*"
     }
   ]
 }
