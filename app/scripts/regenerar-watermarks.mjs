@@ -265,6 +265,36 @@ const where = {
   ...(coleccionId ? { collectionId: coleccionId } : {}),
 };
 
+/**
+ * Barrera contra correrlo sobre la plataforma equivocada.
+ *
+ * El bucket está compartido entre varias plataformas, separadas por prefijo
+ * (`raulsinchi/`, `ivana/`). La base, en cambio, es distinta para cada una. Si
+ * el .env tiene el DATABASE_URL de una y el AWS_S3_PREFIX de otra —cosa que
+ * pasa fácil copiando archivos entre entornos— este script escribiría previews
+ * de un cliente encima del bucket de otro.
+ *
+ * Se compara el prefijo real de las fotos de la base contra el configurado, y
+ * ante cualquier desacuerdo se corta antes de tocar nada.
+ */
+const muestra = await db.photo.findMany({
+  where: coleccionId ? { collectionId: coleccionId } : {},
+  select: { storageKey: true },
+  take: 20,
+});
+const prefijosReales = [...new Set(muestra.map((p) => p.storageKey.split("/")[0] + "/"))];
+const esperado = PREFIJO || "(sin prefijo)";
+
+if (prefijosReales.length > 0 && !prefijosReales.includes(PREFIJO)) {
+  console.error(`\n✗ PARÁ. La base y el bucket no son de la misma plataforma.`);
+  console.error(`   AWS_S3_PREFIX configurado : ${esperado}`);
+  console.error(`   prefijo de las fotos      : ${prefijosReales.join(", ")}`);
+  console.error(`\n   Escribir así dejaría previews de un cliente en la carpeta de otro.`);
+  console.error(`   Revisá que DATABASE_URL y AWS_S3_PREFIX del .env sean del mismo lado.`);
+  await db.$disconnect();
+  process.exit(1);
+}
+
 const total = await db.photo.count({ where });
 const modo = FORZAR
   ? "REHACER TODAS"
