@@ -460,7 +460,13 @@ export async function runWatermark(
       }
     }
 
-    const previewKey = s3Key(`previews/${photo.id}.jpg`);
+    // Key versionada. Si se reescribiera siempre en previews/{id}.jpg, para
+    // CloudFront la URL no cambia y sigue sirviendo el preview viejo hasta que
+    // venza su TTL: regenerar quedaba invisible. Con un sufijo nuevo cada vez
+    // es otro archivo, y no hace falta invalidar nada ni pedir permisos extra
+    // en IAM. El anterior se borra unas líneas más arriba, así que no se
+    // acumulan.
+    const previewKey = s3Key(`previews/${photo.id}-${Date.now().toString(36)}.jpg`);
 
     if (useS3) {
       await putS3Object(previewKey, watermarked, "image/jpeg");

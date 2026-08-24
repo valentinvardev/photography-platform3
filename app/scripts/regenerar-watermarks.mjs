@@ -37,6 +37,7 @@ import {
   S3Client,
   GetObjectCommand,
   PutObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import {
   CloudFrontClient,
@@ -258,7 +259,11 @@ async function procesar(foto) {
     .toBuffer();
   const msImagen = Date.now() - t1;
 
-  const previewKey = `${PREFIJO}previews/${foto.id}.jpg`;
+  // Key versionada, igual que en la app. Reescribir siempre previews/{id}.jpg
+  // deja la URL igual, y CloudFront sigue sirviendo el preview viejo hasta que
+  // venza su TTL: el trabajo queda invisible. Con un sufijo nuevo es otro
+  // archivo, y no hace falta invalidar caché ni permisos extra en IAM.
+  const previewKey = `${PREFIJO}previews/${foto.id}-${Date.now().toString(36)}.jpg`;
 
   const t2 = Date.now();
   if (!DRY) {
@@ -270,6 +275,12 @@ async function procesar(foto) {
         ContentType: "image/jpeg",
       }),
     );
+    // El anterior se borra para que no queden huérfanos ocupando lugar.
+    if (foto.previewKey && foto.previewKey !== previewKey) {
+      await s3
+        .send(new DeleteObjectCommand({ Bucket: BUCKET, Key: foto.previewKey }))
+        .catch(() => null);
+    }
     await db.photo.update({
       where: { id: foto.id },
       data: { previewKey, previewGeneratedAt: new Date() },

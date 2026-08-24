@@ -110,7 +110,9 @@ export async function runVideoWatermark(photoId: string): Promise<{ previewKey: 
       }
     }
 
-    const previewKey = s3Key(`previews/${photo.id}.mp4`);
+    // Versionada por el mismo motivo que en las fotos: que CloudFront no siga
+    // sirviendo el preview anterior.
+    const previewKey = s3Key(`previews/${photoId}-${Date.now().toString(36)}.mp4`);
     await putS3Object(previewKey, fs.readFileSync(tmpOut), "video/mp4");
     await db.photo.update({ where: { id: photoId }, data: { previewKey } });
 
