@@ -103,6 +103,7 @@ export function arrancar(collectionId: string, kind: ReprocessKind): EstadoTraba
     actualizado: Date.now(),
   };
   trabajos.set(k, estado);
+  console.log(`[reprocess:${kind}] arrancar() pedido para ${collectionId}`);
 
   void correr(estado).catch((err) => {
     estado.error = mensajeDeError(err);
@@ -136,24 +137,49 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
     if (estado.errores.length < 5) estado.errores.push(`${photoId.slice(-6)}: ${motivo}`);
   };
 
-  // Cursor sobre `order`: hay fotos que nunca salen del filtro —una sin dorsal
-  // visible sigue con bibNumber null por más veces que se la procese— así que
-  // paginar por "las primeras N pendientes" repetiría las mismas para siempre.
-  let desdeOrden: number | null = null;
+  console.log(
+    `[reprocess:${kind}] ARRANCANDO ${collectionId} — pendientes iniciales=${estado.pendientes}`,
+  );
+
+  // Cursor sobre `order`, más un registro de lo ya intentado.
+  //
+  // El cursor solo no alcanza: `order` NO es único —la lambda lo calcula con un
+  // count() que bajo concurrencia repite valores— así que avanzar con `gt`
+  // saltearía fotos que comparten número. Se usa `gte` y se descartan en
+  // memoria las ya intentadas: así no se saltea ninguna ni se repite ninguna.
+  //
+  // Hace falta porque hay fotos que nunca salen del filtro: una sin dorsal
+  // visible sigue con bibNumber null por más veces que se la procese, y una que
+  // falla sigue pendiente. Sin esto el lote traería las mismas para siempre.
+  let desdeOrden = 0;
+  const yaIntentadas = new Set<string>();
 
   for (;;) {
     if (!estado.corriendo) break;
 
-    const lote = await db.photo.findMany({
-      where: {
-        ...where,
-        ...(desdeOrden !== null ? { order: { gt: desdeOrden } } : {}),
-      },
+    const crudo = await db.photo.findMany({
+      where: { ...where, order: { gte: desdeOrden } },
       select: { id: true, mimeType: true, filename: true, order: true },
-      orderBy: { order: "asc" },
+      orderBy: [{ order: "asc" }, { id: "asc" }],
       take: LOTE,
     });
-    if (lote.length === 0) break;
+
+    if (crudo.length === 0) {
+      console.log(`[reprocess:${kind}] sin más fotos desde order=${desdeOrden}`);
+      break;
+    }
+
+    const lote = crudo.filter((p) => !yaIntentadas.has(p.id));
+    if (lote.length === 0) {
+      // Todo el lote ya se intentó: hay que correr el cursor o giramos en vano.
+      desdeOrden = (crudo[crudo.length - 1]?.order ?? desdeOrden) + 1;
+      console.log(`[reprocess:${kind}] lote ya visto, cursor → ${desdeOrden}`);
+      continue;
+    }
+
+    console.log(
+      `[reprocess:${kind}] lote de ${lote.length} desde order=${desdeOrden}`,
+    );
 
     // El watermark es CPU (sharp); OCR e indexado son llamadas a AWS.
     const concurrency = kind === "watermark" ? 2 : 3;
@@ -162,9 +188,10 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
     const worker = async () => {
       while (next < lote.length && estado.corriendo) {
         const photo = lote[next++]!;
-        // El cursor avanza aunque falle: reintentar en la misma corrida sería
-        // volver a pagar el mismo error.
-        if (desdeOrden === null || photo.order > desdeOrden) desdeOrden = photo.order;
+        // Se marca antes de procesar: si falla, no se reintenta en esta corrida
+        // — sería volver a pagar el mismo error.
+        yaIntentadas.add(photo.id);
+        if (photo.order > desdeOrden) desdeOrden = photo.order;
 
         const isVideo =
           isVideoMimeType(photo.mimeType) ||
