@@ -22,7 +22,7 @@ import {
 import { db } from "~/server/db";
 import { getAdminClient } from "~/lib/supabase/admin";
 import { WATERMARK_KEY } from "~/lib/watermark";
-import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCKET } from "~/lib/s3";
+import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCKET, getCFUrl } from "~/lib/s3";
 import type { Image } from "@aws-sdk/client-rekognition";
 
 /**
@@ -78,10 +78,42 @@ const MAX_FACES_POR_FOTO = 20;
 
 // ── Storage backend helpers ───────────────────────────────────────────────────
 
+/**
+ * Tope para bajar una foto. Sin esto un socket que deja de avanzar cuelga al
+ * worker para siempre, y con varios workers el trabajo entero se congela sin
+ * un solo mensaje de error — que es exactamente lo que pasaba con la marca de
+ * agua mientras OCR y rostros ya andaban.
+ */
+const DESCARGA_TIMEOUT_MS = 45_000;
+
+function conTope<T>(promesa: Promise<T>, ms: number, que: string): Promise<T> {
+  return Promise.race([
+    promesa,
+    new Promise<never>((_, rechazar) =>
+      setTimeout(() => rechazar(new Error(`${que} superó ${ms}ms`)), ms),
+    ),
+  ]);
+}
+
 async function downloadBytes(storageKey: string): Promise<Uint8Array | null> {
   if (isS3Key(storageKey)) {
+    // Primero CloudFront: tiene edges en Sudamérica y el bucket está en
+    // us-east-2. Bajar de S3 directo desde este VPS se colgaba; es la misma
+    // distribución que ya sirve la galería, así que no hay nada nuevo que
+    // configurar.
+    const cf = getCFUrl(storageKey);
+    if (cf) {
+      try {
+        const r = await fetch(cf, { signal: AbortSignal.timeout(DESCARGA_TIMEOUT_MS) });
+        if (r.ok) return new Uint8Array(await r.arrayBuffer());
+        console.warn(`[storage] CloudFront ${r.status} para ${storageKey}`);
+      } catch (err) {
+        console.warn(`[storage] CloudFront falló para ${storageKey}:`, (err as Error).name);
+      }
+    }
+
     try {
-      return await getS3ObjectBytes(storageKey);
+      return await conTope(getS3ObjectBytes(storageKey), DESCARGA_TIMEOUT_MS, "descarga S3");
     } catch (err) {
       console.error("[storage] S3 download failed:", storageKey, err);
       return null;
