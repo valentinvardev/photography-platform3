@@ -27,6 +27,8 @@ model Photo {
   faceRecords  FaceRecord[]
 
   @@index([collectionId])
+  // Consultado en cada invocación para no reprocesar la misma key
+  @@index([storageKey])
 }
 
 model FaceRecord {

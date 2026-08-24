@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Prisma } from "../../../../generated/prisma";
 import { s3Key, getCFUrl, createS3DownloadUrl } from "~/lib/s3";
+import { deleteCollection, rekognitionCollectionId } from "~/lib/rekognition";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -176,6 +177,12 @@ export const collectionRouter = createTRPCRouter({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
+
+      // Antes de borrar de Postgres, dar de baja la colección en Rekognition.
+      // Las caras guardadas se facturan por mes y para siempre: una colección
+      // huérfana sigue costando aunque el evento ya no exista en la app.
+      await deleteCollection(rekognitionCollectionId(id));
+
       await ctx.db.purchase.deleteMany({ where: { collectionId: id } });
       await ctx.db.photo.deleteMany({ where: { collectionId: id } });
       return ctx.db.collection.delete({ where: { id } });

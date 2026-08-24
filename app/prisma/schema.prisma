@@ -119,6 +119,10 @@ model Photo {
     price              Decimal?  @db.Decimal(10, 2) // Per-photo override; null = use collection.pricePerBib
     previewKey         String?   // Watermarked preview storage key
     previewGeneratedAt DateTime? // Tracks staleness; regenerate when watermark changes
+    // Cuándo se intentó el OCR, haya encontrado dorsal o no. Sin esto, "bibNumber
+    // null" no distingue "nunca se procesó" de "se procesó y no había dorsal
+    // visible" — que es la mayoría de las fotos — y reprocesar las paga de nuevo.
+    ocrAttemptedAt     DateTime?
     isPublic           Boolean   @default(false) // Free photo — no purchase required
     createdAt          DateTime  @default(now())
 
@@ -128,6 +132,8 @@ model Photo {
     @@index([collectionId])
     @@index([collectionId, bibNumber])
     @@index([bibNumber])
+    // La lambda consulta por storageKey en cada subida para no reprocesar
+    @@index([storageKey])
 }
 
 // Purchase = buyer pays for all photos of a bib in a collection.

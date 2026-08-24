@@ -1,19 +1,31 @@
 /**
  * Core processing functions called directly from the server (bulkAdd mutation).
  * No HTTP, no auth — pure server-side logic.
+ *
+ * Regla de este módulo: el original se baja UNA sola vez por foto y el buffer
+ * se comparte entre OCR, watermark e indexado facial. Antes cada etapa hacía su
+ * propia descarga (3 por foto, ~53 MB para una foto de 24 MP) y la compresión
+ * para Rekognition se calculaba dos veces con idéntico resultado.
  */
 
 import sharp from "sharp";
 import {
-  RekognitionClient,
   DetectTextCommand,
-  CreateCollectionCommand,
   IndexFacesCommand,
 } from "@aws-sdk/client-rekognition";
+import {
+  billedCall,
+  ensureCollection,
+  rekognition,
+  rekognitionCollectionId,
+} from "~/lib/rekognition";
 import { db } from "~/server/db";
 import { getAdminClient } from "~/lib/supabase/admin";
 import { WATERMARK_KEY } from "~/lib/watermark";
 import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key } from "~/lib/s3";
+
+/** Tope de Rekognition para imágenes mandadas por `Bytes`. */
+const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
 
 // ── Storage backend helpers ───────────────────────────────────────────────────
 
@@ -33,15 +45,37 @@ async function downloadBytes(storageKey: string): Promise<Uint8Array | null> {
   return new Uint8Array(await data.arrayBuffer());
 }
 
-// ── Rekognition client (shared) ───────────────────────────────────────────────
+/**
+ * El original de una foto, bajado una sola vez, más la versión achicada que se
+ * le manda a Rekognition. OCR e indexado facial mandan exactamente los mismos
+ * bytes, así que la compresión se hace una vez y se reutiliza.
+ */
+export type PhotoBytes = {
+  raw: Uint8Array;
+  forRekognition: Uint8Array;
+};
 
-const rekognition = new RekognitionClient({
-  region: process.env.AWS_REGION ?? "sa-east-1",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+export async function loadPhotoBytes(
+  storageKey: string,
+  label: string,
+): Promise<PhotoBytes | null> {
+  const raw = await downloadBytes(storageKey);
+  if (!raw) {
+    console.error(`[${label}] Download failed:`, storageKey);
+    return null;
+  }
+
+  if (raw.byteLength <= REKOGNITION_MAX_BYTES) {
+    return { raw, forRekognition: raw };
+  }
+
+  const compressed = await sharp(Buffer.from(raw))
+    .resize({ width: 1920, withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+  console.log(`[${label}] Compressed ${raw.byteLength} → ${compressed.byteLength} bytes`);
+  return { raw, forRekognition: new Uint8Array(compressed) };
+}
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
 
@@ -83,7 +117,10 @@ function extractAllBibs(
     .map(([v]) => v);
 }
 
-export async function runOcr(photoId: string): Promise<{ bib: string | null }> {
+export async function runOcr(
+  photoId: string,
+  preloaded?: PhotoBytes,
+): Promise<{ bib: string | null }> {
   const photo = await db.photo.findUnique({
     where: { id: photoId },
     select: { id: true, storageKey: true, bibNumber: true },
@@ -91,32 +128,25 @@ export async function runOcr(photoId: string): Promise<{ bib: string | null }> {
   if (!photo) return { bib: null };
   if (photo.bibNumber !== null) return { bib: photo.bibNumber };
 
-  const rawBytes = await downloadBytes(photo.storageKey);
-  if (!rawBytes) { console.error("[OCR] Download failed:", photo.storageKey); return { bib: null }; }
-
-  const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
-  let imageBytes: Uint8Array = rawBytes;
-  if (rawBytes.byteLength > REKOGNITION_MAX_BYTES) {
-    const compressed = await sharp(Buffer.from(rawBytes))
-      .resize({ width: 1920, withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-    imageBytes = new Uint8Array(compressed);
-    console.log(`[OCR] Compressed ${rawBytes.byteLength} → ${imageBytes.byteLength} bytes for photoId=${photoId}`);
-  }
+  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "OCR"));
+  if (!bytes) return { bib: null };
 
   try {
-    const response = await rekognition.send(new DetectTextCommand({ Image: { Bytes: imageBytes } }));
+    const response = await billedCall("DetectText", photoId, () =>
+      rekognition.send(new DetectTextCommand({ Image: { Bytes: bytes.forRekognition } })),
+    );
     const bibs = extractAllBibs(response.TextDetections ?? []);
 
     console.log(`[OCR] photoId=${photoId} bibs=${bibs.join(",") || "none"}`);
 
-    if (bibs.length > 0) {
-      const bibString = bibs.join(",");
-      await db.photo.update({ where: { id: photoId }, data: { bibNumber: bibString } });
-      return { bib: bibString };
-    }
-    return { bib: null };
+    // Se marca el intento aunque no haya salido nada: es lo que evita que un
+    // reprocesado vuelva a pagar OCR sobre fotos donde no hay dorsal visible.
+    const bibString = bibs.length > 0 ? bibs.join(",") : null;
+    await db.photo.update({
+      where: { id: photoId },
+      data: { ocrAttemptedAt: new Date(), ...(bibString ? { bibNumber: bibString } : {}) },
+    });
+    return { bib: bibString };
   } catch (err) {
     console.error(`[OCR] Rekognition error for photoId=${photoId}:`, err);
     return { bib: null };
@@ -125,70 +155,116 @@ export async function runOcr(photoId: string): Promise<{ bib: string | null }> {
 
 // ── Watermark ─────────────────────────────────────────────────────────────────
 
+/**
+ * El PNG del watermark se bajaba de S3 en cada foto. Es siempre el mismo
+ * archivo: era un round trip por foto que no hacía falta.
+ */
+let wmCache: { buf: Buffer | null; expiresAt: number } | null = null;
+
+/**
+ * El watermark ya escalado y rotado para un tamaño de imagen dado. Las fotos de
+ * una misma tanda comparten dimensiones, así que se calcula una vez por tamaño
+ * en vez de re-escalar y re-rotar en cada foto.
+ */
+const compositeCache = new Map<string, Buffer>();
+const COMPOSITE_CACHE_MAX = 32;
+
+async function getWatermarkBytes(): Promise<Buffer | null> {
+  const now = Date.now();
+  if (wmCache && now < wmCache.expiresAt) return wmCache.buf;
+
+  let buf: Buffer | null = null;
+  try {
+    buf = Buffer.from(await getS3ObjectBytes(s3Key(WATERMARK_KEY)));
+  } catch {
+    // Todavía no subieron un watermark. Se cachea el null igual, para no
+    // reintentar la descarga en cada foto de la tanda.
+  }
+  wmCache = { buf, expiresAt: now + 10 * 60 * 1000 };
+  return buf;
+}
+
+/** Invalida el caché. Llamar cuando el admin cambia el watermark. */
+export function resetWatermarkCache(): void {
+  wmCache = null;
+  compositeCache.clear();
+}
+
+function fallbackComposite(): { input: Buffer; tile: boolean; blend: "over" } {
+  const tileSize = 220;
+  const half = tileSize / 2;
+  const svg = [
+    `<svg width="${tileSize}" height="${tileSize}" xmlns="http://www.w3.org/2000/svg">`,
+    `<text x="${half}" y="${half}" text-anchor="middle" dominant-baseline="middle"`,
+    ` font-family="Arial, sans-serif" font-size="22" font-weight="bold" letter-spacing="3"`,
+    ` fill="rgba(255,255,255,0.38)"`,
+    ` transform="rotate(-35, ${half}, ${half})">PREVIEW</text>`,
+    `</svg>`,
+  ].join("");
+  return { input: Buffer.from(svg), tile: true, blend: "over" };
+}
+
 async function buildWatermarkComposite(
   imageWidth: number,
   imageHeight: number,
 ): Promise<{ input: Buffer; tile: boolean; blend: "over" }> {
-  let wmPng: Buffer | null = null;
-  try {
-    const bytes = await getS3ObjectBytes(s3Key(WATERMARK_KEY));
-    wmPng = Buffer.from(bytes);
-  } catch {
-    // no watermark uploaded yet
+  const wmPng = await getWatermarkBytes();
+  if (!wmPng) return fallbackComposite();
+
+  const meta = await sharp(wmPng).metadata();
+  const wmW = meta.width ?? 300;
+  const wmH = meta.height ?? 100;
+  const targetW = Math.round(Math.min(imageWidth, imageHeight) * 0.40);
+  const targetH = Math.round((wmH / wmW) * targetW);
+
+  const cacheKey = `${targetW}x${targetH}`;
+  const cached = compositeCache.get(cacheKey);
+  if (cached) return { input: cached, tile: true, blend: "over" };
+
+  const scaled = await sharp(wmPng)
+    .resize(targetW, targetH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .rotate(-35, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toBuffer();
+
+  if (compositeCache.size >= COMPOSITE_CACHE_MAX) {
+    const oldest = compositeCache.keys().next().value;
+    if (oldest !== undefined) compositeCache.delete(oldest);
   }
+  compositeCache.set(cacheKey, scaled);
 
-  if (wmPng) {
-    const meta = await sharp(wmPng).metadata();
-    const wmW = meta.width ?? 300;
-    const wmH = meta.height ?? 100;
-    const targetW = Math.round(Math.min(imageWidth, imageHeight) * 0.40);
-    const targetH = Math.round((wmH / wmW) * targetW);
-
-    const scaled = await sharp(wmPng)
-      .resize(targetW, targetH, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .rotate(-35, { background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .png()
-      .toBuffer();
-
-    return { input: scaled, tile: true, blend: "over" };
-  }
-
-  const tileSize = 220;
-  const half = tileSize / 2;
-  const fallback = Buffer.from(
-    `<svg width="${tileSize}" height="${tileSize}" xmlns="http://www.w3.org/2000/svg">
-      <text x="${half}" y="${half}" text-anchor="middle" dominant-baseline="middle"
-        font-family="Arial, sans-serif" font-size="22" font-weight="bold" letter-spacing="3"
-        fill="rgba(255,255,255,0.38)"
-        transform="rotate(-35, ${half}, ${half})">PREVIEW</text>
-    </svg>`,
-  );
-  return { input: fallback, tile: true, blend: "over" };
+  return { input: scaled, tile: true, blend: "over" };
 }
 
-export async function runWatermark(photoId: string): Promise<{ previewKey: string | null }> {
+export async function runWatermark(
+  photoId: string,
+  preloaded?: PhotoBytes,
+): Promise<{ previewKey: string | null }> {
   const photo = await db.photo.findUnique({ where: { id: photoId } });
   if (!photo) return { previewKey: null };
 
   const useS3 = isS3Key(photo.storageKey);
-  const bytes = await downloadBytes(photo.storageKey);
-  if (!bytes) { console.error("[Watermark] Download failed:", photo.storageKey); return { previewKey: null }; }
+  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "Watermark"));
+  if (!bytes) return { previewKey: null };
 
-  const buffer = Buffer.from(bytes);
-  const meta = await sharp(buffer).metadata();
-  const w = meta.width ?? 1200;
-  const h = meta.height ?? 800;
+  const buffer = Buffer.from(bytes.raw);
 
   try {
     const supabase = getAdminClient();
     const PREVIEW_MAX_WIDTH = 1600;
     const PREVIEW_QUALITY = 65;
-    const resizedBuffer = w > PREVIEW_MAX_WIDTH
-      ? await sharp(buffer).resize({ width: PREVIEW_MAX_WIDTH, withoutEnlargement: true }).toBuffer()
-      : buffer;
-    const resizedMeta = w > PREVIEW_MAX_WIDTH ? await sharp(resizedBuffer).metadata() : { width: w, height: h };
-    const composite = await buildWatermarkComposite(resizedMeta.width ?? w, resizedMeta.height ?? h);
-    const watermarked = await sharp(resizedBuffer).composite([composite]).jpeg({ quality: PREVIEW_QUALITY, mozjpeg: true }).toBuffer();
+
+    // El resize devuelve las dimensiones de salida en `info`, así que no hace
+    // falta una pasada aparte de metadata para saber a qué tamaño quedó.
+    const { data: resizedBuffer, info } = await sharp(buffer)
+      .resize({ width: PREVIEW_MAX_WIDTH, withoutEnlargement: true })
+      .toBuffer({ resolveWithObject: true });
+
+    const composite = await buildWatermarkComposite(info.width, info.height);
+    const watermarked = await sharp(resizedBuffer)
+      .composite([composite])
+      .jpeg({ quality: PREVIEW_QUALITY, mozjpeg: true })
+      .toBuffer();
 
     // Delete previous preview from the correct backend
     if (photo.previewKey) {
@@ -211,7 +287,10 @@ export async function runWatermark(photoId: string): Promise<{ previewKey: strin
       if (upError) { console.error("[Watermark] Upload failed:", upError); return { previewKey: null }; }
     }
 
-    await db.photo.update({ where: { id: photoId }, data: { previewKey } });
+    await db.photo.update({
+      where: { id: photoId },
+      data: { previewKey, previewGeneratedAt: new Date() },
+    });
     console.log(`[Watermark] photoId=${photoId} done (${useS3 ? "s3" : "supabase"})`);
     return { previewKey };
   } catch (err) {
@@ -220,66 +299,48 @@ export async function runWatermark(photoId: string): Promise<{ previewKey: strin
   }
 }
 
-function buildFallbackComposite(): { input: Buffer; tile: boolean; blend: "over" } {
-  const tileSize = 220;
-  const half = tileSize / 2;
-  const fallback = Buffer.from(
-    `<svg width="${tileSize}" height="${tileSize}" xmlns="http://www.w3.org/2000/svg">
-      <text x="${half}" y="${half}" text-anchor="middle" dominant-baseline="middle"
-        font-family="Arial, sans-serif" font-size="22" font-weight="bold" letter-spacing="3"
-        fill="rgba(255,255,255,0.38)"
-        transform="rotate(-35, ${half}, ${half})">PREVIEW</text>
-    </svg>`,
-  );
-  return { input: fallback, tile: true, blend: "over" };
-}
-
 // ── Face index ────────────────────────────────────────────────────────────────
 
-function rekognitionCollectionId(collectionId: string) {
-  return `foto-${collectionId.replace(/[^a-zA-Z0-9_.\-]/g, "-")}`;
-}
-
-async function ensureRekognitionCollection(collId: string) {
-  try {
-    await rekognition.send(new CreateCollectionCommand({ CollectionId: collId }));
-  } catch (err: unknown) {
-    if ((err as { name?: string }).name !== "ResourceAlreadyExistsException") throw err;
-  }
-}
-
-export async function runFaceIndex(photoId: string, collectionId: string): Promise<void> {
+export async function runFaceIndex(
+  photoId: string,
+  collectionId: string,
+  preloaded?: PhotoBytes,
+): Promise<void> {
   const photo = await db.photo.findUnique({
     where: { id: photoId },
     select: { id: true, storageKey: true },
   });
   if (!photo) return;
 
-  const rawBytes = await downloadBytes(photo.storageKey);
-  if (!rawBytes) { console.error("[FaceIndex] Download failed:", photo.storageKey); return; }
-
-  const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
-  let imageBytes: Uint8Array = rawBytes;
-  if (rawBytes.byteLength > REKOGNITION_MAX_BYTES) {
-    const compressed = await sharp(Buffer.from(rawBytes))
-      .resize({ width: 1920, withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
-    imageBytes = new Uint8Array(compressed);
-    console.log(`[FaceIndex] Compressed ${rawBytes.byteLength} → ${imageBytes.byteLength} bytes for photoId=${photoId}`);
+  // Idempotencia: si esta foto ya tiene caras indexadas, volver a llamar a
+  // IndexFaces se paga de nuevo Y duplica las caras en la colección (cada
+  // llamada devuelve FaceIds nuevos, así que el upsert por rekFaceId no
+  // deduplica nada). La guarda de esas caras se factura por mes para siempre.
+  const alreadyIndexed = await db.faceRecord.findFirst({
+    where: { photoId },
+    select: { id: true },
+  });
+  if (alreadyIndexed) {
+    console.log(`[FaceIndex] photoId=${photoId} ya indexada — se omite`);
+    return;
   }
+
+  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "FaceIndex"));
+  if (!bytes) return;
 
   const rekCollectionId = rekognitionCollectionId(collectionId);
 
   try {
-    await ensureRekognitionCollection(rekCollectionId);
-    const result = await rekognition.send(new IndexFacesCommand({
-      CollectionId: rekCollectionId,
-      Image: { Bytes: imageBytes },
-      ExternalImageId: photoId,
-      DetectionAttributes: [],
-      MaxFaces: 10,
-    }));
+    await ensureCollection(rekCollectionId);
+    const result = await billedCall("IndexFaces", photoId, () =>
+      rekognition.send(new IndexFacesCommand({
+        CollectionId: rekCollectionId,
+        Image: { Bytes: bytes.forRekognition },
+        ExternalImageId: photoId,
+        DetectionAttributes: [],
+        MaxFaces: 10,
+      })),
+    );
 
     const indexed = result.FaceRecords ?? [];
     console.log(`[FaceIndex] photoId=${photoId} indexed ${indexed.length} faces`);
@@ -296,4 +357,63 @@ export async function runFaceIndex(photoId: string, collectionId: string): Promi
   } catch (err) {
     console.error(`[FaceIndex] Error for photoId=${photoId}:`, err);
   }
+}
+
+// ── Orquestación ──────────────────────────────────────────────────────────────
+
+/**
+ * Procesa una foto entera con una sola descarga del original.
+ * Las tres etapas van en paralelo: OCR e indexado son llamadas a AWS y el
+ * watermark es CPU más subida, así que se solapan bien.
+ */
+export async function processPhoto(photoId: string, collectionId: string): Promise<void> {
+  const photo = await db.photo.findUnique({
+    where: { id: photoId },
+    select: { storageKey: true },
+  });
+  if (!photo) return;
+
+  const bytes = await loadPhotoBytes(photo.storageKey, "process");
+  if (!bytes) return;
+
+  const started = Date.now();
+  await Promise.allSettled([
+    runOcr(photoId, bytes),
+    runWatermark(photoId, bytes),
+    runFaceIndex(photoId, collectionId, bytes),
+  ]);
+  console.log(`[process] photoId=${photoId} listo en ${Date.now() - started} ms`);
+}
+
+/**
+ * Procesa un lote con un techo de tareas simultáneas.
+ *
+ * Antes esto era un loop con `await setTimeout(i * 400)`. Al ser acumulativo,
+ * una tanda de 10 sumaba 18 s de espera pura (400 × 45) y aun así no ponía
+ * ningún techo real: cada subida lanzaba su propio loop y todos se solapaban
+ * sin límite. Un pool acotado ordena eso sin frenar de más.
+ */
+export async function processPhotoBatch(
+  photos: { id: string; isVideo: boolean }[],
+  collectionId: string,
+  concurrency = 3,
+): Promise<void> {
+  const { runVideoWatermark } = await import("~/lib/video-processing");
+
+  let next = 0;
+  const worker = async () => {
+    while (next < photos.length) {
+      const item = photos[next++]!;
+      try {
+        if (item.isVideo) await runVideoWatermark(item.id);
+        else await processPhoto(item.id, collectionId);
+      } catch (err) {
+        console.error(`[process] photoId=${item.id} falló:`, err);
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, photos.length) }, worker),
+  );
 }

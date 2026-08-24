@@ -16,11 +16,13 @@ import {
   MAX_SUGGESTED_PHOTOS,
   type BibMatchLevel,
 } from "~/lib/bib";
+import { deleteFaces, rekognitionCollectionId } from "~/lib/rekognition";
 import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { db } from "~/server/db";
 
 const STORAGE_LIMIT_BYTES = 100 * 1024 * 1024 * 1024; // 100 GB
 
@@ -33,6 +35,30 @@ type SearchPhoto = {
   storageKey: string;
   previewKey: string | null;
 };
+
+/**
+ * Saca de Rekognition las caras de estas fotos antes de borrarlas de la DB.
+ * Sin esto, la cara queda guardada y facturándose por mes para siempre aunque
+ * la foto ya no exista en ningún lado.
+ */
+async function removeIndexedFaces(photoIds: string[]): Promise<void> {
+  if (photoIds.length === 0) return;
+  const records = await db.faceRecord.findMany({
+    where: { photoId: { in: photoIds } },
+    select: { rekFaceId: true, collectionId: true },
+  });
+  if (records.length === 0) return;
+
+  const byCollection = new Map<string, string[]>();
+  for (const r of records) {
+    const list = byCollection.get(r.collectionId) ?? [];
+    list.push(r.rekFaceId);
+    byCollection.set(r.collectionId, list);
+  }
+  for (const [collectionId, faceIds] of byCollection) {
+    await deleteFaces(rekognitionCollectionId(collectionId), faceIds);
+  }
+}
 
 type BibSearchResult = {
   /** Fotos del dorsal buscado. */
@@ -259,19 +285,8 @@ export const photoRouter = createTRPCRouter({
       const ids = created.map((c) => ({ id: c.id, isVideo: isVideoMimeType(c.mimeType) }));
 
       void (async () => {
-        const { runOcr, runWatermark, runFaceIndex } = await import("~/lib/photo-processing");
-        const { runVideoWatermark } = await import("~/lib/video-processing");
-        for (let i = 0; i < ids.length; i++) {
-          const { id: photoId, isVideo } = ids[i]!;
-          await new Promise((r) => setTimeout(r, i * 400));
-          if (isVideo) {
-            void runVideoWatermark(photoId);
-          } else {
-            void runOcr(photoId);
-            void runWatermark(photoId);
-            void runFaceIndex(photoId, input.collectionId);
-          }
-        }
+        const { processPhotoBatch } = await import("~/lib/photo-processing");
+        await processPhotoBatch(ids, input.collectionId);
       })();
 
       return { ids: ids.map((x) => x.id) };
@@ -303,6 +318,8 @@ export const photoRouter = createTRPCRouter({
         if (client) await client.storage.from("photos").remove(supabaseKeys);
       }
 
+      await removeIndexedFaces([input.id]);
+
       return ctx.db.photo.delete({ where: { id: input.id } });
     }),
 
@@ -326,6 +343,8 @@ export const photoRouter = createTRPCRouter({
         if (client) await client.storage.from("photos").remove(supabaseKeys);
       }
 
+      await removeIndexedFaces(input.ids);
+
       await ctx.db.photo.deleteMany({ where: { id: { in: input.ids } } });
     }),
 
@@ -342,6 +361,24 @@ export const photoRouter = createTRPCRouter({
       const { runVideoWatermark } = await import("~/lib/video-processing");
       const result = await runVideoWatermark(input.id);
       return { previewKey: result.previewKey };
+    }),
+
+  /**
+   * Cuánto trabajo pendiente tiene una colección, por tipo.
+   * Alimenta los botones de reprocesado: la idea es que se vea el número (y lo
+   * que va a costar) ANTES de tocar el botón, no después.
+   */
+  pendingWork: protectedProcedure
+    .input(z.object({ collectionId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const { collectionId } = input;
+      const [total, ocr, faces, watermark] = await Promise.all([
+        ctx.db.photo.count({ where: { collectionId } }),
+        ctx.db.photo.count({ where: { collectionId, ocrAttemptedAt: null } }),
+        ctx.db.photo.count({ where: { collectionId, faceRecords: { none: {} } } }),
+        ctx.db.photo.count({ where: { collectionId, previewKey: null } }),
+      ]);
+      return { total, ocr, faces, watermark };
     }),
 
   listUnwatermarked: protectedProcedure

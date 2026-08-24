@@ -26,6 +26,9 @@ export const env = createEnv({
     AWS_REGION: z.string().optional(),
     AWS_S3_BUCKET: z.string().optional(),
     AWS_S3_PREFIX: z.string().optional(),
+    // Identifica esta plataforma en los logs [rek] para repartir la factura de
+    // AWS entre los proyectos que comparten la cuenta.
+    PLATFORM_NAME: z.string().optional(),
     CLOUDFRONT_DOMAIN: z.string().optional(),
     CLOUDFRONT_DISTRIBUTION_ID: z.string().optional(),
   },
@@ -56,6 +59,7 @@ export const env = createEnv({
     AWS_REGION: process.env.AWS_REGION,
     AWS_S3_BUCKET: process.env.AWS_S3_BUCKET,
     AWS_S3_PREFIX: process.env.AWS_S3_PREFIX,
+    PLATFORM_NAME: process.env.PLATFORM_NAME,
     CLOUDFRONT_DOMAIN: process.env.CLOUDFRONT_DOMAIN,
     CLOUDFRONT_DISTRIBUTION_ID: process.env.CLOUDFRONT_DISTRIBUTION_ID,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

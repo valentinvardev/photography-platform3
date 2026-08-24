@@ -4,8 +4,7 @@ import { api } from "~/trpc/server";
 import { PhotoUploader } from "~/app/_components/admin/PhotoUploader";
 import { PhotoManager } from "~/app/_components/admin/PhotoManager";
 import { CollectionActions } from "~/app/_components/admin/CollectionActions";
-import { FaceReindexButton } from "~/app/_components/admin/FaceReindexButton";
-import { WatermarkAllButton } from "~/app/_components/admin/WatermarkAllButton";
+import { ReprocessPanel } from "~/app/_components/admin/ReprocessPanel";
 import { PricingPanel } from "~/app/_components/admin/PricingPanel";
 import { parseDiscountCodes } from "~/lib/pricing";
 import { isS3Key } from "~/lib/s3";
@@ -162,10 +161,9 @@ export default async function EditCollectionPage({
           ))}
         </div>
 
-        {/* Reindex + Watermark */}
-        <div className="px-6 py-4 border-t border-[color:var(--color-grey-300)] flex items-center gap-6 flex-wrap">
-          <FaceReindexButton collectionId={collection.id} totalPhotos={totalCount} />
-          <WatermarkAllButton collectionId={collection.id} />
+        {/* Reprocesar trabajo pendiente */}
+        <div className="px-6 py-5 border-t border-[color:var(--color-grey-300)]">
+          <ReprocessPanel collectionId={collection.id} />
         </div>
       </div>
 

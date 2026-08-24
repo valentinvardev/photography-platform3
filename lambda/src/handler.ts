@@ -132,6 +132,20 @@ export const handler: S3Handler = async (event: S3Event) => {
 
     const { collectionId: dbCollectionId, filename } = parsed;
 
+    // ── Idempotencia ──────────────────────────────────────────────────────────
+    // Si ya existe una Photo para esta key, no volvemos a procesar. Esto cubre
+    // dos casos que se pagan dos veces: el reintento de AWS tras un error, y la
+    // app registrando la misma subida por su cuenta desde bulkAdd. Sin esta
+    // guarda, cada foto puede costar 4 operaciones de Rekognition en vez de 2.
+    const existing = await prisma.photo.findFirst({
+      where: { storageKey: key },
+      select: { id: true },
+    });
+    if (existing) {
+      console.log(`[Lambda] key=${key} ya procesada (photoId=${existing.id}) — se omite`);
+      continue;
+    }
+
     // Verificar que la colección existe
     const collection = await prisma.collection.findUnique({
       where: { id: dbCollectionId },
@@ -141,64 +155,74 @@ export const handler: S3Handler = async (event: S3Event) => {
       throw new Error(`Colección no encontrada: ${dbCollectionId} (key: ${key})`);
     }
 
-    // Descargar imagen
-    const imageBytes = await downloadS3(bucket, key);
-
-    // ── OCR (DetectText) ──────────────────────────────────────────────────────
-    let bibNumber: string | null = null;
-    try {
-      const ocrResult = await rekognition.send(
-        new DetectTextCommand({ Image: { Bytes: imageBytes } }),
-      );
-      bibNumber = extractBibs(ocrResult.TextDetections ?? []);
-      console.log(`[Lambda] OCR key=${key} bib=${bibNumber ?? "none"}`);
-    } catch (err) {
-      console.error(`[Lambda] OCR falló para key=${key}:`, err);
-    }
-
-    // ── Crear registro Photo en DB ────────────────────────────────────────────
+    // ── Crear registro Photo ANTES de gastar en Rekognition ───────────────────
+    // El orden importa: si el insert falla después del OCR, la excepción llega
+    // a AWS, que reintenta el record hasta 2 veces más y vuelve a pagar el OCR
+    // cada vez. Creando la fila primero, un fallo de DB no cuesta nada, y un
+    // reintento encuentra la fila y sale por la guarda de arriba.
     const photo = await prisma.photo.create({
       data: {
         collectionId: dbCollectionId,
         storageKey: key,
         filename,
         fileSize,
-        bibNumber,
+        bibNumber: null,
         order: await prisma.photo.count({ where: { collectionId: dbCollectionId } }),
       },
     });
     console.log(`[Lambda] Photo creada id=${photo.id}`);
 
-    // ── Face Index (IndexFaces) ───────────────────────────────────────────────
+    // A partir de acá nada se relanza: la fila ya existe y un reintento sólo
+    // volvería a pagar Rekognition sin arreglar nada.
     try {
-      const rekCollId = collectionId(dbCollectionId);
-      await ensureCollection(rekCollId);
+      const imageBytes = await downloadS3(bucket, key);
 
-      const faceResult = await rekognition.send(
-        new IndexFacesCommand({
-          CollectionId: rekCollId,
-          Image: { Bytes: imageBytes },
-          ExternalImageId: photo.id,
-          DetectionAttributes: [],
-          MaxFaces: 10,
-        }),
-      );
+      // ── OCR (DetectText) ────────────────────────────────────────────────────
+      try {
+        const ocrResult = await rekognition.send(
+          new DetectTextCommand({ Image: { Bytes: imageBytes } }),
+        );
+        const bibNumber = extractBibs(ocrResult.TextDetections ?? []);
+        console.log(`[Lambda] OCR key=${key} bib=${bibNumber ?? "none"}`);
+        if (bibNumber) {
+          await prisma.photo.update({ where: { id: photo.id }, data: { bibNumber } });
+        }
+      } catch (err) {
+        console.error(`[Lambda] OCR falló para key=${key}:`, err);
+      }
 
-      const faceRecords = faceResult.FaceRecords ?? [];
-      console.log(`[Lambda] FaceIndex id=${photo.id} caras=${faceRecords.length}`);
+      // ── Face Index (IndexFaces) ─────────────────────────────────────────────
+      try {
+        const rekCollId = collectionId(dbCollectionId);
+        await ensureCollection(rekCollId);
 
-      for (const fr of faceRecords) {
-        const faceId = fr.Face?.FaceId;
-        if (!faceId) continue;
-        await prisma.faceRecord.upsert({
-          where: { rekFaceId: faceId },
-          update: { photoId: photo.id, collectionId: dbCollectionId, confidence: fr.Face?.Confidence ?? null },
-          create: { rekFaceId: faceId, photoId: photo.id, collectionId: dbCollectionId, confidence: fr.Face?.Confidence ?? null },
-        });
+        const faceResult = await rekognition.send(
+          new IndexFacesCommand({
+            CollectionId: rekCollId,
+            Image: { Bytes: imageBytes },
+            ExternalImageId: photo.id,
+            DetectionAttributes: [],
+            MaxFaces: 10,
+          }),
+        );
+
+        const faceRecords = faceResult.FaceRecords ?? [];
+        console.log(`[Lambda] FaceIndex id=${photo.id} caras=${faceRecords.length}`);
+
+        for (const fr of faceRecords) {
+          const faceId = fr.Face?.FaceId;
+          if (!faceId) continue;
+          await prisma.faceRecord.upsert({
+            where: { rekFaceId: faceId },
+            update: { photoId: photo.id, collectionId: dbCollectionId, confidence: fr.Face?.Confidence ?? null },
+            create: { rekFaceId: faceId, photoId: photo.id, collectionId: dbCollectionId, confidence: fr.Face?.Confidence ?? null },
+          });
+        }
+      } catch (err) {
+        console.error(`[Lambda] FaceIndex falló para id=${photo.id}:`, err);
       }
     } catch (err) {
-      console.error(`[Lambda] FaceIndex falló para id=${photo.id}:`, err);
-      // No se relanza — el registro Photo ya existe, faceRecords se pueden reindexar
+      console.error(`[Lambda] Procesamiento falló para id=${photo.id}:`, err);
     }
   }
 };

@@ -246,7 +246,7 @@ export function FolderBrowser({
   const [galleryFilter, setGalleryFilter] = useState<"all" | "bib" | "no-bib">("all");
   const [faceActive, setFaceActive] = useState(false);
   const [faceStatus, setFaceStatus] = useState<
-    "idle" | "uploading" | "done" | "no-face" | "error"
+    "idle" | "uploading" | "done" | "no-face" | "too-large" | "rate-limited" | "error"
   >("idle");
   const [faceBibs, setFaceBibs] = useState<{ bib: string; photoIds: string[] }[] | null>(null);
   const [modal, setModal] = useState<{ bib: string; photoIds: string[]; allPhotoIds: string[] } | null>(null);
@@ -502,7 +502,21 @@ export function FolderBrowser({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64, collectionId }),
       });
+      if (resp.status === 429) {
+        setFaceStatus("rate-limited");
+        return;
+      }
+      if (resp.status === 413) {
+        setFaceStatus("too-large");
+        return;
+      }
       if (!resp.ok) throw new Error(`status ${resp.status}`);
+
+      // Se registra acá, no en el camino de éxito: llegado este punto la
+      // llamada a Rekognition ya se pagó, encuentre o no una cara. Contarla
+      // sólo cuando hay match subestimaba el gasto real.
+      trackEvent("SEARCH_FACE", collectionId);
+
       const json = (await resp.json()) as {
         groups: { bib: string; photoIds: string[] }[];
         noFaceDetected?: boolean;
@@ -514,7 +528,6 @@ export function FolderBrowser({
       setFaceBibs(json.groups);
       setFaceStatus("done");
       setFaceActive(true);
-      trackEvent("SEARCH_FACE", collectionId);
     } catch (err) {
       console.error("[face-search] upload error:", err);
       setFaceStatus("error");
@@ -588,7 +601,7 @@ export function FolderBrowser({
             <button
               onClick={() => {
                 if (faceStatus === "uploading") return;
-                if (faceStatus === "done" || faceStatus === "error" || faceStatus === "no-face") {
+                if (faceStatus !== "idle") {
                   setFaceStatus("idle");
                   setFaceBibs(null);
                   if (fileRef.current) fileRef.current.value = "";
@@ -629,6 +642,22 @@ export function FolderBrowser({
                 No detectamos rostro ·{" "}
                 <button onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }} className="underline underline-offset-4">
                   intentar otra
+                </button>
+              </p>
+            )}
+            {faceStatus === "rate-limited" && (
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-[#FFE000]">
+                Demasiadas búsquedas seguidas · esperá un minuto ·{" "}
+                <button onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }} className="underline underline-offset-4">
+                  reintentar
+                </button>
+              </p>
+            )}
+            {faceStatus === "too-large" && (
+              <p className="font-sans font-bold uppercase tracking-[0.22em] text-[11px] text-[#FFE000]">
+                La foto es muy pesada ·{" "}
+                <button onClick={() => { setFaceStatus("idle"); if (fileRef.current) fileRef.current.value = ""; }} className="underline underline-offset-4">
+                  probá otra
                 </button>
               </p>
             )}
