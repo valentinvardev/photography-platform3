@@ -22,7 +22,48 @@ import {
 import { db } from "~/server/db";
 import { getAdminClient } from "~/lib/supabase/admin";
 import { WATERMARK_KEY } from "~/lib/watermark";
-import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key } from "~/lib/s3";
+import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCKET } from "~/lib/s3";
+import type { Image } from "@aws-sdk/client-rekognition";
+
+/**
+ * Cómo se le pasa la imagen a Rekognition.
+ *
+ * Si está en S3, se le pasa la referencia y AWS la lee por su cuenta: no baja
+ * nada al servidor ni vuelve a subirlo. El camino viejo —bajar 4,4 MB de S3 y
+ * subírselos a Rekognition— pagaba dos transferencias grandes por foto, y
+ * medido desde el VPS eran ~11 s cada una. Además el límite sube de 5 MB a
+ * 15 MB, así que no hace falta comprimir nada.
+ *
+ * El bucket tiene que estar en la misma región que Rekognition: acá lo están,
+ * los dos clientes usan AWS_REGION.
+ *
+ * Sólo se cae a `Bytes` para lo que quedó en Supabase, donde no hay referencia
+ * que AWS pueda seguir.
+ */
+async function conImagen<T>(
+  storageKey: string,
+  label: string,
+  respaldo: PhotoBytes | null,
+  ejecutar: (imagen: Image) => Promise<T>,
+): Promise<T | null> {
+  if (isS3Key(storageKey)) {
+    try {
+      return await ejecutar({ S3Object: { Bucket: S3_BUCKET, Name: storageKey } });
+    } catch (err) {
+      const name = (err as { name?: string }).name;
+      // Si AWS no puede leer el objeto —bucket en otra región, permisos— se
+      // cae a mandar los bytes. Cuesta dos transferencias, pero funciona.
+      // No pude verificar la región del bucket desde acá (falta
+      // s3:GetBucketLocation), así que esta red se queda.
+      if (name !== "InvalidS3ObjectException" && name !== "AccessDeniedException") throw err;
+      console.warn(`[${label}] S3Object rechazado (${name}) — reintentando con bytes`);
+    }
+  }
+
+  const bytes = respaldo ?? (await loadPhotoBytes(storageKey, label));
+  if (!bytes) return null;
+  return ejecutar({ Bytes: bytes.forRekognition });
+}
 
 /** Tope de Rekognition para imágenes mandadas por `Bytes`. */
 const REKOGNITION_MAX_BYTES = 5 * 1024 * 1024;
@@ -93,11 +134,18 @@ export async function loadPhotoBytes(
   storageKey: string,
   label: string,
 ): Promise<PhotoBytes | null> {
+  // Cronometrado por etapa: sin esto no se puede distinguir "colgado" de
+  // "lento", ni saber si el cuello está en la red o en el CPU.
+  const t0 = Date.now();
   const raw = await downloadBytes(storageKey);
+  const msBajada = Date.now() - t0;
   if (!raw) {
-    console.error(`[${label}] Download failed:`, storageKey);
+    console.error(`[${label}] Download failed en ${msBajada}ms:`, storageKey);
     return null;
   }
+  console.log(
+    `[${label}] bajada ${(raw.byteLength / 1e6).toFixed(1)}MB en ${msBajada}ms`,
+  );
 
   // Ya es liviana: mandarla tal cual y evitarse el re-encode.
   if (raw.byteLength <= REKOGNITION_TARGET_BYTES) {
@@ -106,6 +154,7 @@ export async function loadPhotoBytes(
 
   const source = Buffer.from(raw);
   let ultima: Buffer | null = null;
+  const tc = Date.now();
 
   for (const escalon of ESCALONES_REKOGNITION) {
     const pipeline = sharp(source);
@@ -114,7 +163,7 @@ export async function loadPhotoBytes(
 
     if (ultima.byteLength <= REKOGNITION_TARGET_BYTES) {
       console.log(
-        `[${label}] ${(raw.byteLength / 1e6).toFixed(1)}MB → ${(ultima.byteLength / 1e6).toFixed(2)}MB ` +
+        `[${label}] comprimida a ${(ultima.byteLength / 1e6).toFixed(2)}MB en ${Date.now() - tc}ms ` +
           `(${escalon.width ? `${escalon.width}px` : "resolución completa"}, q${escalon.quality})`,
       );
       return { raw, forRekognition: new Uint8Array(ultima) };
@@ -182,13 +231,13 @@ export async function runOcr(
   if (!photo) return { bib: null };
   if (photo.bibNumber !== null) return { bib: photo.bibNumber };
 
-  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "OCR"));
-  if (!bytes) return { bib: null };
-
   try {
-    const response = await billedCall("DetectText", photoId, () =>
-      rekognition.send(new DetectTextCommand({ Image: { Bytes: bytes.forRekognition } })),
+    const response = await conImagen(photo.storageKey, "OCR", preloaded ?? null, (imagen) =>
+      billedCall("DetectText", photoId, () =>
+        rekognition.send(new DetectTextCommand({ Image: imagen })),
+      ),
     );
+    if (!response) return { bib: null };
     const bibs = extractAllBibs(response.TextDetections ?? []);
 
     console.log(`[OCR] photoId=${photoId} bibs=${bibs.join(",") || "none"}`);
@@ -379,17 +428,15 @@ export async function runFaceIndex(
     return;
   }
 
-  const bytes = preloaded ?? (await loadPhotoBytes(photo.storageKey, "FaceIndex"));
-  if (!bytes) return;
-
   const rekCollectionId = rekognitionCollectionId(collectionId);
 
   try {
     await ensureCollection(rekCollectionId);
-    const result = await billedCall("IndexFaces", photoId, () =>
+    const result = await conImagen(photo.storageKey, "FaceIndex", preloaded ?? null, (imagen) =>
+      billedCall("IndexFaces", photoId, () =>
       rekognition.send(new IndexFacesCommand({
         CollectionId: rekCollectionId,
-        Image: { Bytes: bytes.forRekognition },
+        Image: imagen,
         ExternalImageId: photoId,
         DetectionAttributes: [],
         MaxFaces: MAX_FACES_POR_FOTO,
@@ -400,7 +447,9 @@ export async function runFaceIndex(
         // lejos o en movimiento, que es medio evento deportivo.
         QualityFilter: "NONE",
       })),
+      ),
     );
+    if (!result) return;
 
     const indexed = result.FaceRecords ?? [];
     const descartadas = result.UnindexedFaces ?? [];

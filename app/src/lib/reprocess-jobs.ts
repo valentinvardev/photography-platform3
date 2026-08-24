@@ -118,14 +118,21 @@ export function arrancar(collectionId: string, kind: ReprocessKind): EstadoTraba
 /** Pide que el trabajo se detenga en la vuelta siguiente. */
 export function detener(collectionId: string, kind: ReprocessKind): void {
   const e = trabajos.get(clave(collectionId, kind));
-  if (e) e.corriendo = false;
+  if (!e) return;
+  // Se loguea porque, sin esto, un trabajo detenido a mano y uno cortado por un
+  // bug se ven exactamente igual desde afuera.
+  console.log(
+    `[reprocess:${kind}] detener() pedido para ${collectionId} ` +
+      `(iba en procesadas=${e.procesadas})`,
+  );
+  e.corriendo = false;
 }
 
 async function correr(estado: EstadoTrabajo): Promise<void> {
   const { collectionId, kind } = estado;
   const where = { collectionId, ...pendingFilter(kind) };
 
-  const { runOcr, runFaceIndex, runWatermark, loadPhotoBytes } = await import(
+  const { runOcr, runFaceIndex, runWatermark } = await import(
     "~/lib/photo-processing"
   );
   const { runVideoWatermark } = await import("~/lib/video-processing");
@@ -155,7 +162,12 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
   const yaIntentadas = new Set<string>();
 
   for (;;) {
-    if (!estado.corriendo) break;
+    if (!estado.corriendo) {
+      console.log(
+        `[reprocess:${kind}] cortado por pedido (procesadas=${estado.procesadas})`,
+      );
+      break;
+    }
 
     const crudo = await db.photo.findMany({
       where: { ...where, order: { gte: desdeOrden } },
@@ -212,18 +224,13 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
             // pagaría igual.
             continue;
           } else {
-            const record = await db.photo.findUnique({
-              where: { id: photo.id },
-              select: { storageKey: true },
-            });
-            if (!record) continue;
-            const bytes = await loadPhotoBytes(record.storageKey, kind);
-            if (!bytes) {
-              anotar(photo.id, "no se pudo descargar el original");
-              continue;
-            }
-            if (kind === "ocr" || kind === "ocr-retry") await runOcr(photo.id, bytes);
-            else await runFaceIndex(photo.id, collectionId, bytes);
+            // Sin precargar bytes: runOcr y runFaceIndex le pasan a Rekognition
+            // la referencia en S3 y AWS lee el archivo por su cuenta. Bajarlo
+            // acá para volver a subirlo eran dos transferencias de ~4,4 MB por
+            // foto. Sólo se descarga si la foto quedó en Supabase, y de eso se
+            // encargan ellas mismas.
+            if (kind === "ocr" || kind === "ocr-retry") await runOcr(photo.id);
+            else await runFaceIndex(photo.id, collectionId);
           }
           estado.procesadas++;
         } catch (err) {
@@ -238,6 +245,15 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
     await Promise.all(
       Array.from({ length: Math.min(concurrency, lote.length) }, worker),
     );
+
+    // Si los workers salieron sin agotar el lote, alguien apagó `corriendo` en
+    // el medio. Dejarlo visible: antes esto terminaba en silencio.
+    if (next < lote.length) {
+      console.warn(
+        `[reprocess:${kind}] los workers pararon en ${next}/${lote.length} ` +
+          `(corriendo=${estado.corriendo})`,
+      );
+    }
 
     estado.pendientes = await db.photo.count({ where });
     estado.actualizado = Date.now();
