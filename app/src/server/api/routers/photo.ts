@@ -79,7 +79,10 @@ export const photoRouter = createTRPCRouter({
     .input(z.object({ collectionId: z.string() }))
     .query(async ({ ctx, input }) => {
       const photos = await ctx.db.photo.findMany({
-        where: { collectionId: input.collectionId },
+        // Sin preview no se muestra: la foto todavía no tiene marca de agua y
+        // mostrarla implicaría servir el original. Reaparece sola cuando el
+        // procesamiento la alcanza.
+        where: { collectionId: input.collectionId, previewKey: { not: null } },
         orderBy: { order: "asc" },
         select: { id: true, bibNumber: true, price: true, mimeType: true, filename: true },
       });
@@ -161,6 +164,8 @@ export const photoRouter = createTRPCRouter({
         where: {
           collectionId: input.collectionId,
           bibNumber: { in: [...exactBibs, ...similarBibs.map((s) => s.bib)] },
+          // Ídem que en listAll: sin preview no sale a la vista pública.
+          previewKey: { not: null },
         },
         orderBy: { order: "asc" },
         select,
@@ -211,11 +216,17 @@ export const photoRouter = createTRPCRouter({
       });
       const results = await Promise.all(
         photos.map(async (p) => {
-          const key = p.previewKey ?? p.storageKey;
           const ct = p.mimeType ?? (/\.(mp4|mov|webm|mkv|m4v)$/i.test(p.filename) ? "video/mp4" : undefined);
-          const url = isS3Key(key)
-            ? await resolveMediaUrl(key, { contentType: ct ?? undefined })
-            : await createSignedUrl(key, 3600);
+          // Sólo el preview con marca de agua. Antes, si el preview todavía no
+          // estaba generado, esto caía al original: la foto salía a la galería
+          // pública en calidad completa y sin marca, o sea regalada. Si no hay
+          // preview, no hay nada que mostrar hasta que se procese.
+          if (!p.previewKey) {
+            return { id: p.id, url: null, mimeType: ct ?? p.mimeType, filename: p.filename };
+          }
+          const url = isS3Key(p.previewKey)
+            ? await resolveMediaUrl(p.previewKey, { contentType: ct ?? undefined })
+            : await createSignedUrl(p.previewKey, 3600);
           return { id: p.id, url, mimeType: ct ?? p.mimeType, filename: p.filename };
         }),
       );
