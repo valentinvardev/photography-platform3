@@ -249,7 +249,11 @@ export function FolderBrowser({
     "idle" | "uploading" | "done" | "no-face" | "too-large" | "rate-limited" | "error"
   >("idle");
   const [faceBibs, setFaceBibs] = useState<{ bib: string; photoIds: string[] }[] | null>(null);
-  const [modal, setModal] = useState<{ bib: string; photoIds: string[]; allPhotoIds: string[] } | null>(null);
+  const [modal, setModal] = useState<{
+    bib: string;
+    photoIds: string[];
+    alcance: { id: string; bibNumber: string | null }[];
+  } | null>(null);
   const [lightbox, setLightbox] = useState<{
     url: string;
     mimeType: string | null;
@@ -408,7 +412,9 @@ export function FolderBrowser({
     if (bibs.size > 0) {
       for (const p of ap) if (bibs.has(normalizeBib(p.bibNumber))) ids.add(p.id);
     }
-    return [...ids];
+    // Va con el dorsal de cada foto porque el descuento por cantidad se aplica
+    // por persona, y el modal necesita poder agruparlas.
+    return [...ids].map((id) => ({ id, bibNumber: byId.get(id)?.bibNumber ?? null }));
   }, []);
 
   // Stable handlers — same reference across renders, so memo'd tiles don't re-render
@@ -448,7 +454,7 @@ export function FolderBrowser({
     const allBibs = [...new Set(items.map((i) => i.bibNumber).filter(Boolean))];
     const bib = allBibs.length === 1 ? (allBibs[0] ?? "") : "";
     const scope = buildPurchaseScope(items.map((i) => i.photoId));
-    setModal({ bib, photoIds: items.map((i) => i.photoId), allPhotoIds: scope });
+    setModal({ bib, photoIds: items.map((i) => i.photoId), alcance: scope });
   }, [buildPurchaseScope]);
 
   // Checkout event listener — stable, never re-subscribes on cart changes
@@ -914,7 +920,7 @@ export function FolderBrowser({
                   setModal({
                     bib: lightbox.bibNumber ?? "",
                     photoIds: lightbox.photoIds,
-                    allPhotoIds: scope,
+                    alcance: scope,
                   });
                   setLightbox(null);
                 }}
@@ -941,7 +947,7 @@ export function FolderBrowser({
         <BibCheckoutModal
           bib={modal.bib}
           photoIds={modal.photoIds}
-          allPhotoIds={modal.allPhotoIds}
+          alcance={modal.alcance}
           collectionId={collectionId}
           onClose={() => setModal(null)}
         />

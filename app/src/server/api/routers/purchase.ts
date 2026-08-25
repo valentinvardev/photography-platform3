@@ -5,7 +5,15 @@ import { sendPurchaseApprovedEmail } from "~/lib/email";
 import { createSignedUrl } from "~/lib/supabase/admin";
 import { createS3DownloadUrl, isS3Key } from "~/lib/s3";
 import { getPurchasePhotoThumbs } from "~/lib/purchase-photos";
-import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
+import {
+  parseTiers,
+  parseDiscountCodes,
+  applyDiscountCode,
+  calcularTotal,
+  calcularPack,
+  claveDePersona,
+  agruparPorPersona,
+} from "~/lib/pricing";
 import { normalizeBib } from "~/lib/bib";
 import {
   createTRPCRouter,
@@ -85,32 +93,57 @@ export const purchaseRouter = createTRPCRouter({
       const sameBibPhotos = bibVariants.length > 0
         ? await ctx.db.photo.findMany({
             where: { collectionId: input.collectionId, bibNumber: { in: bibVariants } },
-            select: { id: true, price: true },
+            select: { id: true, price: true, bibNumber: true },
           })
         : [];
 
-      type ScopePhoto = { id: string; price: (typeof photos)[number]["price"] };
+      type ScopePhoto = { id: string; price: number | null; bibNumber: string | null };
       const scope = new Map<string, ScopePhoto>();
-      for (const p of [...photos, ...sameBibPhotos]) scope.set(p.id, { id: p.id, price: p.price });
+      for (const p of [...photos, ...sameBibPhotos]) {
+        scope.set(p.id, {
+          id: p.id,
+          price: p.price !== null ? Number(p.price) : null,
+          bibNumber: p.bibNumber,
+        });
+      }
+
+      // Cuántas fotos hay de cada persona. Es lo que decide el tramo de
+      // descuento, y va por persona y no sobre el total del carrito: la
+      // promoción es "llevá más fotos tuyas", no juntar fotos de gente
+      // distinta hasta llegar a la cantidad.
+      const fotosPorPersona = new Map<string, number>();
+      for (const p of scope.values()) {
+        const clave = claveDePersona(p.bibNumber);
+        fotosPorPersona.set(clave, (fotosPorPersona.get(clave) ?? 0) + 1);
+      }
+
+      /** Las personas que la compra realmente involucra. */
+      const personas = agruparPorPersona([...photos]).size;
 
       const packActive =
         input.packMode === true &&
         collection.packPrice !== null &&
         collection.packPrice !== undefined;
-      const purchasedPhotos = packActive ? [...scope.values()] : photos;
+      const purchasedPhotos = packActive
+        ? [...scope.values()]
+        : photos.map((p) => ({
+            id: p.id,
+            price: p.price !== null ? Number(p.price) : null,
+            bibNumber: p.bibNumber,
+          }));
 
       let totalAmount: number;
 
       if (packActive) {
-        totalAmount = Number(collection.packPrice);
+        // El pack es "todas las fotos de tu dorsal": dos dorsales son dos packs.
+        totalAmount = calcularPack(Number(collection.packPrice), personas);
       } else {
-        const tiers = parseTiers(collection.discountTiers);
-        const basePrice = Number(collection.pricePerBib);
-        const effectiveBase = calcEffectivePricePerPhoto(scope.size, basePrice, tiers);
-        totalAmount = purchasedPhotos.reduce((sum, p) => {
-          const custom = p.price !== null ? Number(p.price) : null;
-          return sum + (custom !== null && custom !== basePrice ? custom : effectiveBase);
-        }, 0);
+        totalAmount = calcularTotal(
+          purchasedPhotos,
+          fotosPorPersona,
+          Number(collection.pricePerBib),
+          parseTiers(collection.discountTiers),
+        );
       }
 
       // Apply discount code if provided

@@ -8,7 +8,15 @@ import { useCart } from "~/app/_components/CartContext";
 import { Sheet } from "~/app/_components/design/Sheet";
 import { Field } from "~/app/_components/design/Field";
 import { Lightbox } from "~/app/_components/design/Lightbox";
-import { parseTiers, calcEffectivePricePerPhoto, parseDiscountCodes, applyDiscountCode } from "~/lib/pricing";
+import {
+  parseTiers,
+  parseDiscountCodes,
+  applyDiscountCode,
+  calcularTotal,
+  calcularPack,
+  claveDePersona,
+  agruparPorPersona,
+} from "~/lib/pricing";
 
 type Step = "cart" | "buy" | "email";
 
@@ -79,16 +87,17 @@ function PhotoRow({
 export function BibCheckoutModal({
   bib,
   photoIds: initialPhotoIds,
-  allPhotoIds,
+  alcance,
   collectionId,
   onClose,
 }: {
   bib: string;
   /** Las fotos que la persona eligió. */
   photoIds: string[];
-  /** Alcance de la compra: las elegidas más todas las de su mismo dorsal. Define
-   *  qué incluye el pack y cuántas fotos cuentan para el descuento por cantidad. */
-  allPhotoIds: string[];
+  /** Alcance de la compra: las elegidas más todas las del mismo dorsal. Define
+   *  qué incluye el pack y cuántas fotos cuentan para el descuento por cantidad.
+   *  Viene con el dorsal de cada una porque el descuento se aplica por persona. */
+  alcance: { id: string; bibNumber: string | null }[];
   collectionId: string;
   onClose: () => void;
 }) {
@@ -117,24 +126,45 @@ export function BibCheckoutModal({
   const tiers = parseTiers(collectionInfo?.discountTiers);
   const discountCodes = parseDiscountCodes(collectionInfo?.discountCodes);
   const packPrice = collectionInfo?.packPrice ?? null;
-  const effectiveBase = calcEffectivePricePerPhoto(allPhotoIds.length, basePrice, tiers);
+  const allPhotoIds = alcance.map((a) => a.id);
 
   const discountResult = applyDiscountCode(0, discountCodeInput.trim() || null, discountCodes);
   const appliedDiscount = discountCodeInput.trim()
     ? discountCodes.find((c) => c.code.toLowerCase() === discountCodeInput.trim().toLowerCase()) ?? null
     : null;
 
-  // Per-photo prices: use custom price if different from base, else effective tier price
+  const dorsalPorFoto = new Map(alcance.map((a) => [a.id, a.bibNumber]));
   const priceById = new Map(cartItems.map((i) => [i.photoId, i.price]));
-  const getPhotoPrice = (id: string) => {
-    const custom = priceById.get(id);
-    if (custom !== undefined && custom !== basePrice) return custom;
-    return effectiveBase;
-  };
+
+  // Cuántas fotos hay de cada persona en el alcance. Es lo que decide el tramo,
+  // y se calcula igual que en el servidor: por persona, no sobre el total del
+  // carrito. Si acá se mostrara otra cosa, el precio del checkout no coincidiría
+  // con el que termina cobrando MercadoPago.
+  const fotosPorPersona = new Map<string, number>();
+  for (const a of alcance) {
+    const clave = claveDePersona(a.bibNumber);
+    fotosPorPersona.set(clave, (fotosPorPersona.get(clave) ?? 0) + 1);
+  }
+
+  const paraPrecio = (ids: string[]) =>
+    ids.map((id) => ({
+      id,
+      bibNumber: dorsalPorFoto.get(id) ?? null,
+      price: priceById.get(id) ?? null,
+    }));
+
+  /** Precio de una foto suelta, ya con el tramo de SU persona. */
+  const getPhotoPrice = (id: string) =>
+    calcularTotal(paraPrecio([id]), fotosPorPersona, basePrice, tiers);
+
+  // Cuántas personas distintas entran en el pack. El servidor llega al mismo
+  // número: el alcance son las elegidas más las de sus mismos dorsales, así que
+  // las personas del alcance y las de la selección son las mismas.
+  const personas = agruparPorPersona(alcance).size;
 
   const rawTotal = packMode
-    ? (packPrice ?? 0)
-    : photoIds.reduce((sum, id) => sum + getPhotoPrice(id), 0);
+    ? calcularPack(packPrice ?? 0, personas)
+    : calcularTotal(paraPrecio(photoIds), fotosPorPersona, basePrice, tiers);
   const selectedTotal = appliedDiscount
     ? Math.round(rawTotal * (1 - appliedDiscount.percent / 100))
     : rawTotal;
