@@ -44,3 +44,5 @@ yarn-error.log*
 
 # idea files
 .idea
+# artefactos de scripts/test-watermark-logic.mjs
+.test-build/

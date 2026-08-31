@@ -14,6 +14,7 @@ import {
   DeleteCollectionCommand,
   DeleteFacesCommand,
 } from "@aws-sdk/client-rekognition";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 
 /** Nombre de esta plataforma en los logs. Distinto por deploy. */
 export const PLATFORM = process.env.PLATFORM_NAME ?? "sinchi";
@@ -24,6 +25,12 @@ export const rekognition = new RekognitionClient({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
+  // El default del SDK es sin timeout (0 = infinito). Un socket muerto acá
+  // dejaría OCR o indexado esperando para siempre, igual que pasaba con S3.
+  requestHandler: new NodeHttpHandler({
+    connectionTimeout: 10_000,
+    requestTimeout: 90_000,
+  }),
 });
 
 /** Nombre de la colección Rekognition para una colección de la DB. */

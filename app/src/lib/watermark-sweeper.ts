@@ -18,6 +18,13 @@
 import { db } from "~/server/db";
 import { isVideoMimeType } from "~/lib/video-utils";
 import { hayTrabajoCorriendo } from "~/lib/reprocess-jobs";
+import {
+  registrarFallo,
+  registrarExito,
+  idsEnEspera,
+  cantidadEnEspera,
+  type Reintento,
+} from "~/lib/watermark-queue";
 
 /** Red de seguridad: cada tanto revisa por las dudas. */
 const INTERVALO_MS = 5 * 60_000;
@@ -49,13 +56,11 @@ const CONCURRENCIA = Math.max(1, Number(process.env.WATERMARK_CONCURRENCIA ?? "8
 const MAX_POR_CORRIDA = 5_000;
 
 /**
- * Después de tantos intentos fallidos se deja de reintentar hasta el próximo
- * reinicio. Sin esto, una foto rota —el original borrado del bucket, por
- * ejemplo— se reintentaría cada cinco minutos para siempre.
+ * Reintentos con espera creciente. La lógica vive en watermark-queue.ts, pura
+ * y testeada: acá sólo se consume. Ver ahí por qué se abandonó el contador de
+ * "3 intentos de por vida" — dejaba fotos sin marca hasta reiniciar pm2.
  */
-const MAX_INTENTOS = 3;
-
-const intentos = new Map<string, number>();
+const reintentos = new Map<string, Reintento>();
 let corriendo = false;
 let pedidoPendiente = false;
 let timer: NodeJS.Timeout | null = null;
@@ -107,7 +112,6 @@ async function barrer(): Promise<void> {
 
   try {
     const { runWatermark } = await import("~/lib/photo-processing");
-    const { runVideoWatermark } = await import("~/lib/video-processing");
 
     // Drena la cola entera, igual que el script: trae un lote, lo procesa, y
     // vuelve a preguntar. Hacer una tanda y esperar al intervalo dejaba una
@@ -121,18 +125,22 @@ async function barrer(): Promise<void> {
         break;
       }
 
-      const pendientes = await db.photo.findMany({
-        where: { previewKey: null },
+      // Las apartadas por fallos recientes se excluyen EN LA CONSULTA. Si se
+      // filtraran en memoria después (como antes), una ventana llena de
+      // apartadas taparía a las fotos más viejas jamás intentadas y el barrido
+      // cortaría creyendo que no queda nada.
+      const enEspera = idsEnEspera(reintentos, Date.now());
+      const cola = await db.photo.findMany({
+        where: {
+          previewKey: null,
+          ...(enEspera.length ? { id: { notIn: enEspera } } : {}),
+        },
         // Las más nuevas primero: son las del evento que se está publicando,
         // las que alguien está esperando ver.
         orderBy: { createdAt: "desc" },
         select: { id: true, mimeType: true, filename: true, storageKey: true, previewKey: true },
-        take: POR_VUELTA * 3,
+        take: POR_VUELTA,
       });
-
-      const cola = pendientes
-        .filter((p) => (intentos.get(p.id) ?? 0) < MAX_INTENTOS)
-        .slice(0, POR_VUELTA);
 
       if (cola.length === 0) break;
 
@@ -145,20 +153,28 @@ async function barrer(): Promise<void> {
             /\.(mp4|mov|webm|mkv|m4v)$/i.test(foto.filename);
 
           try {
-            const { previewKey } = esVideo
-              ? await runVideoWatermark(foto.id)
-              : await runWatermark(foto.id, { foto });
+            let previewKey: string | null;
+            if (esVideo) {
+              // Import adentro del try y sólo si hace falta: si ffmpeg no está
+              // instalable en este servidor, que falle ESTE video — antes el
+              // import iba al arranque de la corrida y su fallo tumbaba el
+              // barrido entero, fotos incluidas, sin procesar ninguna.
+              const { runVideoWatermark } = await import("~/lib/video-processing");
+              ({ previewKey } = await runVideoWatermark(foto.id));
+            } else {
+              ({ previewKey } = await runWatermark(foto.id, { foto }));
+            }
 
             if (previewKey) {
               hechas++;
-              intentos.delete(foto.id);
+              registrarExito(reintentos, foto.id);
             } else {
               fallidas++;
-              intentos.set(foto.id, (intentos.get(foto.id) ?? 0) + 1);
+              registrarFallo(reintentos, foto.id, Date.now());
             }
           } catch (err) {
             fallidas++;
-            intentos.set(foto.id, (intentos.get(foto.id) ?? 0) + 1);
+            registrarFallo(reintentos, foto.id, Date.now());
             console.error(`[barrido] photoId=${foto.id} falló:`, err);
           }
         }
@@ -181,10 +197,10 @@ async function barrer(): Promise<void> {
 
     if (hechas + fallidas > 0) {
       const seg = ((Date.now() - arranque) / 1000).toFixed(0);
-      const rendidas = [...intentos.values()].filter((n) => n >= MAX_INTENTOS).length;
+      const apartadas = cantidadEnEspera(reintentos, Date.now());
       console.log(
         `[barrido] terminado en ${seg}s — ${hechas} con marca, ${fallidas} fallidas` +
-          (rendidas > 0 ? `, ${rendidas} descartadas tras ${MAX_INTENTOS} intentos` : ""),
+          (apartadas > 0 ? `, ${apartadas} en espera de reintento` : ""),
       );
     }
   } catch (err) {

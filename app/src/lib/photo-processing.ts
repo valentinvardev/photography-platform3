@@ -25,7 +25,7 @@ import {
 import { db } from "~/server/db";
 import { getAdminClient } from "~/lib/supabase/admin";
 import { WATERMARK_KEY } from "~/lib/watermark";
-import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCKET, getCFUrl } from "~/lib/s3";
+import { getS3ObjectBytes, putS3Object, deleteS3Objects, isS3Key, s3Key, S3_BUCKET, getCFUrl, headS3Object } from "~/lib/s3";
 import type { Image } from "@aws-sdk/client-rekognition";
 
 /**
@@ -305,7 +305,22 @@ export async function runOcr(
  * El PNG del watermark se bajaba de S3 en cada foto. Es siempre el mismo
  * archivo: era un round trip por foto que no hacía falta.
  */
-let wmCache: { buf: Buffer | null; expiresAt: number } | null = null;
+/**
+ * "ausente" y "error" son estados distintos a propósito, porque piden lo
+ * contrario uno del otro:
+ * - ausente: no hay watermark subido (NoSuchKey). Legítimo — la plataforma
+ *   eligió no usar marca — y corresponde el texto de respaldo.
+ * - error: hay (o puede haber) una marca pero no se pudo traer. Publicar la
+ *   foto con el respaldo acá sería sacarla a la galería SIN la marca real y
+ *   marcarla terminada para siempre: nadie la reintentaría. Corresponde fallar
+ *   la foto y que el barrido la reintente cuando la red vuelva.
+ */
+type EstadoWatermark =
+  | { estado: "ok"; buf: Buffer }
+  | { estado: "ausente" }
+  | { estado: "error" };
+
+let wmCache: { valor: EstadoWatermark; expiresAt: number } | null = null;
 
 /**
  * El watermark ya escalado y rotado para un tamaño de imagen dado. Las fotos de
@@ -315,28 +330,40 @@ let wmCache: { buf: Buffer | null; expiresAt: number } | null = null;
 const compositeCache = new Map<string, Buffer>();
 const COMPOSITE_CACHE_MAX = 32;
 
-async function getWatermarkBytes(): Promise<Buffer | null> {
+async function getWatermarkBytes(): Promise<EstadoWatermark> {
   const now = Date.now();
-  if (wmCache && now < wmCache.expiresAt) return wmCache.buf;
+  if (wmCache && now < wmCache.expiresAt) return wmCache.valor;
 
-  // Por downloadBytes, no por getS3ObjectBytes: así aprovecha CloudFront y el
-  // tope de tiempo, igual que las fotos.
-  const bytes = await downloadBytes(s3Key(WATERMARK_KEY));
-  const buf = bytes ? Buffer.from(bytes) : null;
+  const key = s3Key(WATERMARK_KEY);
 
-  // Un fallo NO se cachea diez minutos. Antes sí, y era peligroso: si la
-  // descarga fallaba una vez, toda foto procesada en esa ventana salía con el
-  // texto "PREVIEW" translúcido del fallback en lugar de la marca — un preview
-  // que parece sin marca de agua, pero que la app da por bueno y no reintenta.
-  // Ante la duda conviene reintentar de más y no publicar una foto sin marcar.
-  if (!buf) {
-    console.warn("[Watermark] no se pudo traer el PNG de la marca — se reintenta enseguida");
-    wmCache = { buf: null, expiresAt: now + 15_000 };
-    return null;
+  // Primero se pregunta si el PNG EXISTE, con una llamada barata, para poder
+  // separar "no hay marca configurada" de "no la pude traer". Después la
+  // descarga va por downloadBytes (CloudFront + tope de tiempo).
+  let valor: EstadoWatermark;
+  try {
+    const head = await headS3Object(key);
+    if (head === "no-existe") {
+      valor = { estado: "ausente" };
+    } else if (head === "error") {
+      valor = { estado: "error" };
+    } else {
+      const bytes = await downloadBytes(key);
+      valor = bytes ? { estado: "ok", buf: Buffer.from(bytes) } : { estado: "error" };
+    }
+  } catch {
+    valor = { estado: "error" };
   }
 
-  wmCache = { buf, expiresAt: now + 10 * 60 * 1000 };
-  return buf;
+  // El éxito y la ausencia se cachean 10 min; el error, 15 s. Un error no
+  // puede quedarse cacheado mucho tiempo: mientras dure, las fotos fallan (a
+  // propósito, para no publicarlas sin marca) y conviene salir de ahí rápido.
+  if (valor.estado === "error") {
+    console.warn("[Watermark] no se pudo traer el PNG de la marca — las fotos esperan al reintento");
+    wmCache = { valor, expiresAt: now + 15_000 };
+  } else {
+    wmCache = { valor, expiresAt: now + 10 * 60 * 1000 };
+  }
+  return valor;
 }
 
 /** Invalida el caché. Llamar cuando el admin cambia el watermark. */
@@ -359,12 +386,20 @@ function fallbackComposite(): { input: Buffer; tile: boolean; blend: "over" } {
   return { input: Buffer.from(svg), tile: true, blend: "over" };
 }
 
+/**
+ * Devuelve null cuando la marca existe pero no se pudo traer: la foto tiene que
+ * FALLAR y reintentarse, no salir a la galería con el respaldo translúcido y
+ * quedar marcada como terminada. Eso pasó de verdad: fotos publicadas "sin
+ * marca" que el sistema daba por buenas y nunca reintentaba.
+ */
 async function buildWatermarkComposite(
   imageWidth: number,
   imageHeight: number,
-): Promise<{ input: Buffer; tile: boolean; blend: "over" }> {
-  const wmPng = await getWatermarkBytes();
-  if (!wmPng) return fallbackComposite();
+): Promise<{ input: Buffer; tile: boolean; blend: "over" } | null> {
+  const wm = await getWatermarkBytes();
+  if (wm.estado === "error") return null;
+  if (wm.estado === "ausente") return fallbackComposite();
+  const wmPng = wm.buf;
 
   const meta = await sharp(wmPng).metadata();
   const wmW = meta.width ?? 300;
@@ -446,6 +481,13 @@ export async function runWatermark(
       .toBuffer({ resolveWithObject: true });
 
     const composite = await buildWatermarkComposite(info.width, info.height);
+    if (!composite) {
+      // La marca existe pero no se pudo traer. Fallar acá es lo correcto: la
+      // foto queda pendiente y se reintenta, en vez de salir sin marca.
+      console.warn(`[Watermark] photoId=${photoId} pospuesta: no hay PNG de la marca disponible`);
+      return { previewKey: null };
+    }
+
     // Sin mozjpeg: medido sobre una foto real del evento, 468 ms contra 319 ms
     // por el mismo preview. Lo que ahorra en bytes no compensa un tercio más de
     // CPU cuando hay cientos de fotos en cola.
@@ -454,23 +496,16 @@ export async function runWatermark(
       .jpeg({ quality: PREVIEW_QUALITY })
       .toBuffer();
 
-    // Delete previous preview from the correct backend
-    if (photo.previewKey) {
-      if (isS3Key(photo.previewKey)) {
-        await deleteS3Objects([photo.previewKey]);
-      } else if (supabase) {
-        await supabase.storage.from("photos").remove([photo.previewKey]);
-      }
-    }
-
     // Key versionada. Si se reescribiera siempre en previews/{id}.jpg, para
     // CloudFront la URL no cambia y sigue sirviendo el preview viejo hasta que
-    // venza su TTL: regenerar quedaba invisible. Con un sufijo nuevo cada vez
-    // es otro archivo, y no hace falta invalidar nada ni pedir permisos extra
-    // en IAM. El anterior se borra unas líneas más arriba, así que no se
-    // acumulan.
+    // venza su TTL: regenerar quedaba invisible.
     const previewKey = s3Key(`previews/${photo.id}-${Date.now().toString(36)}.jpg`);
 
+    // El orden es deliberado: primero subir el nuevo, después apuntar la base,
+    // y recién al final borrar el viejo. Antes se borraba primero, y si la
+    // subida fallaba la base quedaba apuntando a un objeto ya borrado: la
+    // galería mostraba una imagen rota y nada la reintentaba, porque para el
+    // sistema esa foto seguía "hecha".
     if (useS3) {
       await putS3Object(previewKey, watermarked, "image/jpeg");
     } else {
@@ -485,6 +520,18 @@ export async function runWatermark(
       where: { id: photoId },
       data: { previewKey, previewGeneratedAt: new Date() },
     });
+
+    // El viejo recién ahora, cuando el nuevo ya está servible. Si este borrado
+    // falla queda un huérfano en S3, que es barato; lo contrario —una foto rota
+    // en la galería— no.
+    if (photo.previewKey && photo.previewKey !== previewKey) {
+      if (isS3Key(photo.previewKey)) {
+        await deleteS3Objects([photo.previewKey]).catch(() => null);
+      } else if (supabase) {
+        await supabase.storage.from("photos").remove([photo.previewKey]).catch(() => null);
+      }
+    }
+
     console.log(`[Watermark] photoId=${photoId} done (${useS3 ? "s3" : "supabase"})`);
     return { previewKey };
   } catch (err) {

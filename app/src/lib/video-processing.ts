@@ -74,7 +74,10 @@ export async function runVideoWatermark(photoId: string): Promise<{ previewKey: 
   const wmPath = await getWatermarkTempPath();
 
   try {
-    let cmd = ffmpeg(tmpIn);
+    // Con tope: un ffmpeg trabado sin timeout colgaba al worker que lo esperaba
+    // —y con él al barrido de marcas de agua entero— hasta reiniciar pm2.
+    // fluent-ffmpeg mata el proceso y emite "error" al vencer.
+    let cmd = ffmpeg(tmpIn, { timeout: 300 });
 
     if (wmPath) {
       cmd = cmd

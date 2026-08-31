@@ -88,10 +88,28 @@ export function estadoDe(collectionId: string, kind: ReprocessKind): EstadoTraba
  * uno de esos corre — y frenarlo dejaba las fotos sin marca durante toda una
  * corrida de dorsales.
  */
+/**
+ * Un trabajo sano actualiza `actualizado` con cada foto (cada pocos segundos).
+ * Si lleva este tiempo mudo, el flag quedó colgado —una promesa que nunca se
+ * asentó— y no puede seguir contando como "corriendo": el barrido de marcas de
+ * agua le cede el paso, y un flag zombi lo dejaba apagado hasta reiniciar pm2.
+ */
+const TRABAJO_MUDO_MS = 10 * 60_000;
+
 export function hayTrabajoCorriendo(kind?: ReprocessKind): boolean {
+  const ahora = Date.now();
   for (const t of trabajos.values()) {
     if (!t.corriendo) continue;
-    if (!kind || t.kind === kind) return true;
+    if (kind && t.kind !== kind) continue;
+    if (ahora - t.actualizado > TRABAJO_MUDO_MS) {
+      console.warn(
+        `[reprocess:${t.kind}] trabajo mudo hace ${Math.round((ahora - t.actualizado) / 60000)} min — se lo da por muerto`,
+      );
+      t.corriendo = false;
+      t.error = t.error ?? "trabajo dado por muerto por inactividad";
+      continue;
+    }
+    return true;
   }
   return false;
 }
