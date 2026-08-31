@@ -79,11 +79,20 @@ export function estadoDe(collectionId: string, kind: ReprocessKind): EstadoTraba
 }
 
 /**
- * ¿Hay algún reprocesado en curso? Lo consulta el barrido automático para no
- * pelearle el ancho de banda a un trabajo que el admin disparó a mano.
+ * ¿Hay un reprocesado en curso, de este tipo?
+ *
+ * Lo consulta el barrido de marcas de agua, y le importa sólo el de watermark:
+ * es el único que compite por lo mismo, porque es el único que baja el original
+ * al servidor. Los de dorsal y rostros le pasan a Rekognition la referencia en
+ * S3 y no mueven bytes, así que no hay motivo para frenar el barrido mientras
+ * uno de esos corre — y frenarlo dejaba las fotos sin marca durante toda una
+ * corrida de dorsales.
  */
-export function hayTrabajoCorriendo(): boolean {
-  for (const t of trabajos.values()) if (t.corriendo) return true;
+export function hayTrabajoCorriendo(kind?: ReprocessKind): boolean {
+  for (const t of trabajos.values()) {
+    if (!t.corriendo) continue;
+    if (!kind || t.kind === kind) return true;
+  }
   return false;
 }
 

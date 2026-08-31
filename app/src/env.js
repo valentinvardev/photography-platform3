@@ -30,6 +30,7 @@ export const env = createEnv({
     // AWS entre los proyectos que comparten la cuenta.
     PLATFORM_NAME: z.string().optional(),
     WATERMARK_SWEEPER: z.enum(["on","off"]).optional(),
+    WATERMARK_CONCURRENCIA: z.string().optional(),
     CLOUDFRONT_DOMAIN: z.string().optional(),
     CLOUDFRONT_DISTRIBUTION_ID: z.string().optional(),
   },
@@ -62,6 +63,7 @@ export const env = createEnv({
     AWS_S3_PREFIX: process.env.AWS_S3_PREFIX,
     PLATFORM_NAME: process.env.PLATFORM_NAME,
     WATERMARK_SWEEPER: process.env.WATERMARK_SWEEPER,
+    WATERMARK_CONCURRENCIA: process.env.WATERMARK_CONCURRENCIA,
     CLOUDFRONT_DOMAIN: process.env.CLOUDFRONT_DOMAIN,
     CLOUDFRONT_DISTRIBUTION_ID: process.env.CLOUDFRONT_DISTRIBUTION_ID,
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,

@@ -29,10 +29,17 @@ const PRIMERA_PASADA_MS = 20_000;
 const TRAS_SUBIDA_MS = 3_000;
 
 /** Fotos que trae de la base por vuelta. */
-const POR_VUELTA = 24;
+const POR_VUELTA = 48;
 
-/** Cuántas a la vez. El watermark baja el original y lo pasa por sharp. */
-const CONCURRENCIA = 4;
+/**
+ * Cuántas a la vez.
+ *
+ * El cuello es la red, no el CPU: medido en este servidor, bajar el original
+ * son 2-4 s y subir el preview otros 1-2, contra ~320 ms de sharp. Con un
+ * cuello de red conviene más paralelismo, porque el tiempo se va esperando, no
+ * calculando. Se puede subir o bajar sin desplegar con WATERMARK_CONCURRENCIA.
+ */
+const CONCURRENCIA = Math.max(1, Number(process.env.WATERMARK_CONCURRENCIA ?? "8"));
 
 /**
  * Techo de fotos por despertada. Alto a propósito: la idea es que una subida
@@ -106,8 +113,11 @@ async function barrer(): Promise<void> {
     // vuelve a preguntar. Hacer una tanda y esperar al intervalo dejaba una
     // subida de mil fotos estirada durante horas.
     while (hechas + fallidas < MAX_POR_CORRIDA) {
-      if (hayTrabajoCorriendo()) {
-        console.log("[barrido] pausa: hay un reprocesado del admin en curso");
+      // Sólo cede ante un reprocesado de marcas de agua: es el único que baja
+      // originales y le competiría el ancho de banda. Los de dorsal y rostros
+      // no mueven bytes.
+      if (hayTrabajoCorriendo("watermark")) {
+        console.log("[barrido] pausa: el admin está regenerando marcas de agua");
         break;
       }
 
@@ -159,8 +169,13 @@ async function barrer(): Promise<void> {
       );
 
       const restantes = await db.photo.count({ where: { previewKey: null } });
+      const min = (Date.now() - arranque) / 60000;
+      const ritmo = min > 0 ? Math.round(hechas / min) : 0;
+      // El ritmo y el faltante son lo que permite decidir si hay que subir la
+      // concurrencia o si el problema es otro.
       console.log(
-        `[barrido] ${hechas} con marca, ${fallidas} fallidas, ${restantes} pendientes`,
+        `[barrido] ${hechas} con marca, ${fallidas} fallidas, ${restantes} pendientes` +
+          (ritmo > 0 ? ` · ${ritmo}/min, faltan ~${Math.ceil(restantes / ritmo)} min` : ""),
       );
     }
 
