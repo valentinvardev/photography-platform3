@@ -295,7 +295,16 @@ export const photoRouter = createTRPCRouter({
 
       const ids = created.map((c) => ({ id: c.id, isVideo: isVideoMimeType(c.mimeType) }));
 
+      // La marca de agua la toma el barrido, que corre en el servidor y no
+      // depende de este request: se le avisa que hay fotos nuevas y él las
+      // busca en la base. Es el mismo modelo del script que sí funcionaba.
       void (async () => {
+        const { despertarBarrido } = await import("~/lib/watermark-sweeper");
+        despertarBarrido();
+
+        // Dorsal y rostros sí van acá: no descargan nada —Rekognition lee de
+        // S3 por su cuenta— así que terminan rápido, y si se pierden no dejan
+        // la foto invisible como sí pasa sin preview.
         const { processPhotoBatch } = await import("~/lib/photo-processing");
         await processPhotoBatch(ids, input.collectionId);
       })();
