@@ -20,6 +20,7 @@
  *                 original, así que revisar sale mucho más barato que rehacer.
  *   --forzar      rehace todos, tengan o no la marca. Es el martillo.
  *
+ *   node scripts/regenerar-watermarks.mjs --slug=<slug-de-la-url> --verificar
  *   node scripts/regenerar-watermarks.mjs --coleccion=<id> --verificar
  *   node scripts/regenerar-watermarks.mjs --coleccion=<id> --forzar
  *
@@ -300,12 +301,26 @@ try {
   console.warn(`SIN watermark en ${CLAVE_WATERMARK} — se usa el texto PREVIEW`);
 }
 
-// Se puede indicar el evento por nombre en vez de por id, que es más fácil de
-// copiar bien desde el admin.
+// El evento se puede indicar de tres formas. El slug es el más confiable:
+// sale tal cual de la URL pública y no depende de acentos ni de escribir bien
+// el título.
+const SLUG = arg("slug", null);
 const EVENTO = arg("evento", null);
 let coleccionId = COLECCION;
 
-if (EVENTO) {
+if (SLUG) {
+  const c = await db.collection.findUnique({
+    where: { slug: SLUG },
+    select: { id: true, title: true, _count: { select: { photos: true } } },
+  });
+  if (!c) {
+    console.error(`No hay ningún evento con el slug "${SLUG}".`);
+    await db.$disconnect();
+    process.exit(1);
+  }
+  coleccionId = c.id;
+  console.log(`evento: "${c.title}"  (${c.id}, ${c._count.photos} fotos)`);
+} else if (EVENTO) {
   const encontradas = await db.collection.findMany({
     where: { title: { contains: EVENTO, mode: "insensitive" } },
     select: { id: true, title: true, _count: { select: { photos: true } } },
