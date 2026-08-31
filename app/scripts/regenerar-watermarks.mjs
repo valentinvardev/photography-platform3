@@ -348,6 +348,23 @@ await db.$disconnect();
 // En modo normal sólo interesan las que no tienen preview. Con --forzar o
 // --verificar hay que mirar todas, porque el preview existe y el problema está
 // adentro del archivo.
+// Sin evento no se procesa toda la plataforma por accidente. Pasó: con una
+// versión del script que todavía no conocía --slug, el argumento se ignoró en
+// silencio y el barrido salió a recorrer los ~7.600 originales de todos los
+// eventos en vez del que se pedía. Un argumento que no se entiende tiene que
+// frenar, no ampliar el alcance.
+const TODAS = process.argv.includes("--todas");
+if (!coleccionId && !TODAS) {
+  console.error("\n✗ No indicaste ningún evento, y sin eso esto recorre TODA la plataforma.");
+  console.error("   Elegí uno:");
+  console.error("     --slug=<el-de-la-url>      p. ej. --slug=downhill-pan-de-azucar");
+  console.error("     --evento=<parte del título>");
+  console.error("     --coleccion=<id>");
+  console.error("   O, si de verdad querés todos los eventos: --todas");
+  await db.$disconnect();
+  process.exit(1);
+}
+
 const revisarTodas = FORZAR || VERIFICAR;
 const where = {
   ...(revisarTodas ? {} : { previewKey: null }),
