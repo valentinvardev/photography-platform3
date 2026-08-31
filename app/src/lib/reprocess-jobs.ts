@@ -78,6 +78,15 @@ export function estadoDe(collectionId: string, kind: ReprocessKind): EstadoTraba
   return trabajos.get(clave(collectionId, kind)) ?? null;
 }
 
+/**
+ * ¿Hay algún reprocesado en curso? Lo consulta el barrido automático para no
+ * pelearle el ancho de banda a un trabajo que el admin disparó a mano.
+ */
+export function hayTrabajoCorriendo(): boolean {
+  for (const t of trabajos.values()) if (t.corriendo) return true;
+  return false;
+}
+
 /** Cuántas fotos por vuelta se traen de la base. */
 const LOTE = 25;
 

@@ -2,10 +2,13 @@
  * Core processing functions called directly from the server (bulkAdd mutation).
  * No HTTP, no auth — pure server-side logic.
  *
- * Regla de este módulo: el original se baja UNA sola vez por foto y el buffer
- * se comparte entre OCR, watermark e indexado facial. Antes cada etapa hacía su
- * propia descarga (3 por foto, ~53 MB para una foto de 24 MP) y la compresión
- * para Rekognition se calculaba dos veces con idéntico resultado.
+ * Regla de este módulo: la imagen no viaja si no hace falta. OCR e indexado
+ * facial le pasan a Rekognition la referencia en S3 y AWS lee el archivo por su
+ * cuenta, así que no descargan nada. La marca de agua es la única que necesita
+ * los píxeles en el servidor, porque sharp trabaja sobre ellos.
+ *
+ * Antes las tres bajaban el original —a veces cada una por su lado— y desde
+ * este servidor eso son segundos por transferencia.
  */
 
 import sharp from "sharp";
@@ -576,22 +579,47 @@ export async function runFaceIndex(
  * Las tres etapas van en paralelo: OCR e indexado son llamadas a AWS y el
  * watermark es CPU más subida, así que se solapan bien.
  */
+/**
+ * Reintenta la marca de agua unas veces antes de darse por vencido.
+ *
+ * Es el único paso cuyo fallo se nota enseguida: sin preview la foto no sale a
+ * la galería. Y los fallos acá son casi siempre pasajeros —la descarga del
+ * original desde este servidor se traba cada tanto— así que un par de intentos
+ * espaciados resuelven la mayoría. Lo que quede sin preview lo levanta el
+ * barrido automático más tarde.
+ */
+async function watermarkConReintento(photoId: string, intentos = 3): Promise<void> {
+  for (let i = 1; i <= intentos; i++) {
+    const { previewKey } = await runWatermark(photoId);
+    if (previewKey) return;
+    if (i < intentos) {
+      const espera = 2000 * i;
+      console.warn(
+        `[Watermark] photoId=${photoId} sin preview (intento ${i}/${intentos}), reintenta en ${espera}ms`,
+      );
+      await new Promise((r) => setTimeout(r, espera));
+    }
+  }
+  console.error(
+    `[Watermark] photoId=${photoId} quedó sin preview tras ${intentos} intentos — lo toma el barrido`,
+  );
+}
+
 export async function processPhoto(photoId: string, collectionId: string): Promise<void> {
-  const photo = await db.photo.findUnique({
-    where: { id: photoId },
-    select: { storageKey: true },
-  });
-  if (!photo) return;
-
-  const bytes = await loadPhotoBytes(photo.storageKey, "process");
-  if (!bytes) return;
-
   const started = Date.now();
+
+  // Ninguna etapa precarga bytes. OCR e indexado le pasan a Rekognition la
+  // referencia en S3 y AWS lee el archivo por su cuenta; sólo la marca de agua
+  // necesita los píxeles acá, y se los baja ella. Antes se bajaba una vez para
+  // las tres, pero eso ataba las tres al mismo fallo: si la descarga se
+  // trababa, la foto se quedaba además sin dorsal y sin rostros, cuando esos
+  // dos ni siquiera dependen del servidor para leer la imagen.
   await Promise.allSettled([
-    runOcr(photoId, bytes),
-    runWatermark(photoId, { preloaded: bytes }),
-    runFaceIndex(photoId, collectionId, bytes),
+    runOcr(photoId),
+    runFaceIndex(photoId, collectionId),
+    watermarkConReintento(photoId),
   ]);
+
   console.log(`[process] photoId=${photoId} listo en ${Date.now() - started} ms`);
 }
 
