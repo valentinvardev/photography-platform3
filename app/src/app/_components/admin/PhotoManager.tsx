@@ -29,19 +29,71 @@ function PhotoSkeleton() {
   );
 }
 
-// ── Multi-bib editor ──────────────────────────────────────────────────────────
+// ── Edición de dorsales ───────────────────────────────────────────────────────
+
+function parseBibs(valor: string | null): string[] {
+  return valor ? valor.split(",").map((b) => b.trim()).filter(Boolean) : [];
+}
+
+/**
+ * Estado de los dorsales de una foto, con guardado optimista.
+ *
+ * Antes cada cambio esperaba la respuesta del servidor y después hacía
+ * window.location.reload(): se perdía el scroll, parpadeaba la página entera y
+ * quedaba un segundo largo sin saber si el número había entrado. Ahora el
+ * número aparece apenas se aprieta Enter y sólo se revierte si el guardado
+ * falla; el refresco de los datos del servidor va en silencio por detrás.
+ */
+function useBibs(photo: Photo) {
+  const router = useRouter();
+  const [bibs, setBibs] = useState<string[]>(() => parseBibs(photo.bibNumber));
+  const [fallo, setFallo] = useState(false);
+
+  // Si el servidor termina con otro valor, manda el servidor. El efecto sólo
+  // corre cuando photo.bibNumber cambia de verdad, así que no pisa el valor
+  // optimista mientras el guardado está en vuelo.
+  useEffect(() => {
+    setBibs(parseBibs(photo.bibNumber));
+  }, [photo.bibNumber]);
+
+  const setBib = api.photo.setBibNumber.useMutation({
+    onSuccess: () => {
+      setFallo(false);
+      router.refresh();
+    },
+    onError: () => {
+      setBibs(parseBibs(photo.bibNumber));
+      setFallo(true);
+    },
+  });
+
+  const guardar = (nuevos: string[]) => {
+    const limpios = nuevos.filter(Boolean);
+    const valor = limpios.join(",") || null;
+    if (valor === photo.bibNumber) return;
+    setBibs(limpios);
+    setFallo(false);
+    setBib.mutate({ id: photo.id, bibNumber: valor });
+  };
+
+  return { bibs, guardar, guardando: setBib.isPending, fallo };
+}
+
+/** Input de dorsal. Fondo claro con texto oscuro: en el tema oscuro
+ *  --color-ink es blanco, así que usarlo como color de letra sobre bg-white
+ *  dejaba el número invisible. */
+const CLASE_INPUT_BIB =
+  "w-14 text-[10px] font-mono px-1.5 py-0.5 bg-[color:var(--color-ink)] " +
+  "text-[color:var(--color-paper)] placeholder:text-[color:var(--color-paper)]/40 " +
+  "border border-[color:var(--color-paper)] focus:outline-none";
 
 function MultiBibEditor({ photo }: { photo: Photo }) {
-  const router = useRouter();
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [inputVal, setInputVal] = useState("");
-
-  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => window.location.reload() });
-  const bibs = photo.bibNumber ? photo.bibNumber.split(",").map((b) => b.trim()).filter(Boolean) : [];
+  const { bibs, guardar, guardando, fallo } = useBibs(photo);
 
   const saveBibs = (newBibs: string[]) => {
-    const val = newBibs.filter(Boolean).join(",") || null;
-    if (val !== photo.bibNumber) setBib.mutate({ id: photo.id, bibNumber: val });
+    guardar(newBibs);
     setEditingIdx(null); setInputVal("");
   };
 
@@ -69,13 +121,29 @@ function MultiBibEditor({ photo }: { photo: Photo }) {
       }}
       onClick={(e) => e.stopPropagation()}
       placeholder="dorsal"
-      className="w-14 text-[10px] font-mono px-1.5 py-0.5 bg-white text-[color:var(--color-ink)] border border-[color:var(--color-ink)] focus:outline-none"
+      className={CLASE_INPUT_BIB}
       style={{ minWidth: 0 }}
     />
   );
 
   return (
     <div className="flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+      {/* El número ya se ve apenas se confirma; esto sólo avisa si el
+          guardado no llegó al servidor. */}
+      {fallo && (
+        <span
+          className="font-mono text-[9px] px-1 py-0.5"
+          style={{ color: "var(--color-safelight)" }}
+          title="No se pudo guardar. Volvé a intentarlo."
+        >
+          ✗ sin guardar
+        </span>
+      )}
+      {guardando && (
+        <span className="font-mono text-[9px] px-1 py-0.5 opacity-40" title="Guardando…">
+          ⋯
+        </span>
+      )}
       {bibs.map((bib, idx) =>
         editingIdx === idx ? sharedInput : (
           <span
@@ -112,7 +180,6 @@ function MultiBibEditor({ photo }: { photo: Photo }) {
           + dorsal
         </button>
       )}
-      {setBib.isPending && <span className="font-mono text-[9px] text-white/40">guardando…</span>}
     </div>
   );
 }
@@ -120,16 +187,12 @@ function MultiBibEditor({ photo }: { photo: Photo }) {
 // ── Lightbox bib editor ────────────────────────────────────────────────────────
 
 function LightboxBibEditor({ photo }: { photo: Photo }) {
-  const router = useRouter();
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [inputVal, setInputVal] = useState("");
-
-  const setBib = api.photo.setBibNumber.useMutation({ onSuccess: () => window.location.reload() });
-  const bibs = photo.bibNumber ? photo.bibNumber.split(",").map((b) => b.trim()).filter(Boolean) : [];
+  const { bibs, guardar, guardando, fallo } = useBibs(photo);
 
   const saveBibs = (newBibs: string[]) => {
-    const val = newBibs.filter(Boolean).join(",") || null;
-    if (val !== photo.bibNumber) setBib.mutate({ id: photo.id, bibNumber: val });
+    guardar(newBibs);
     setEditingIdx(null); setInputVal("");
   };
 
@@ -157,12 +220,28 @@ function LightboxBibEditor({ photo }: { photo: Photo }) {
       }}
       onClick={(e) => e.stopPropagation()}
       placeholder="dorsal"
-      className="w-14 text-[10px] font-mono px-1.5 py-0.5 bg-white text-[color:var(--color-ink)] border border-[color:var(--color-ink)] focus:outline-none"
+      className={CLASE_INPUT_BIB}
     />
   );
 
   return (
     <div className="flex flex-wrap items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      {/* El número ya se ve apenas se confirma; esto sólo avisa si el
+          guardado no llegó al servidor. */}
+      {fallo && (
+        <span
+          className="font-mono text-[9px] px-1 py-0.5"
+          style={{ color: "var(--color-safelight)" }}
+          title="No se pudo guardar. Volvé a intentarlo."
+        >
+          ✗ sin guardar
+        </span>
+      )}
+      {guardando && (
+        <span className="font-mono text-[9px] px-1 py-0.5 opacity-40" title="Guardando…">
+          ⋯
+        </span>
+      )}
       {bibs.map((bib, idx) =>
         editingIdx === idx ? input : (
           <span
@@ -233,7 +312,9 @@ function PriceEditor({ photo }: { photo: Photo }) {
         }}
         onClick={(e) => e.stopPropagation()}
         placeholder="precio"
-        className="w-20 font-mono text-[10px] px-1.5 py-0.5 bg-white text-[color:var(--color-ink)] border border-[#16a34a] focus:outline-none"
+        // Mismo caso que el input de dorsal: con el tema oscuro --color-ink es
+        // blanco, así que como color de letra sobre fondo blanco no se veía.
+        className="w-20 font-mono text-[10px] px-1.5 py-0.5 bg-[color:var(--color-ink)] text-[color:var(--color-paper)] placeholder:text-[color:var(--color-paper)]/40 border border-[#16a34a] focus:outline-none"
       />
     );
   }
