@@ -415,6 +415,8 @@ export const photoRouter = createTRPCRouter({
         total: row?.total ?? 0,
         ocr: row?.ocr ?? 0,
         "ocr-retry": row?.ocr_retry ?? 0,
+        // La prueba con Google corre sobre el mismo conjunto: las sin dorsal.
+        "ocr-prueba": row?.ocr_retry ?? 0,
         faces: row?.faces ?? 0,
         watermark: row?.watermark ?? 0,
       };

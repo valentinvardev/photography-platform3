@@ -51,7 +51,7 @@ sharp.concurrency(1);
  * Sólo se cae a `Bytes` para lo que quedó en Supabase, donde no hay referencia
  * que AWS pueda seguir.
  */
-async function conImagen<T>(
+export async function conImagen<T>(
   storageKey: string,
   label: string,
   respaldo: PhotoBytes | null,
@@ -225,7 +225,12 @@ export async function loadPhotoBytes(
 
 // ── OCR ───────────────────────────────────────────────────────────────────────
 
-function extractAllBibs(
+/**
+ * Filtro de producción. Se exporta para que la prueba con Google Vision pueda
+ * mostrar, foto por foto, qué hubiera dicho este filtro: es lo que permite
+ * separar "gana el motor" de "gana el filtro nuevo" (ver `~/lib/dorsal`).
+ */
+export function extractAllBibs(
   detections: Array<{ DetectedText?: string; Type?: string; Confidence?: number }>,
 ): string[] {
   const candidates: { value: string; score: number }[] = [];

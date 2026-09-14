@@ -23,7 +23,7 @@ import {
  *   POST { collectionId, kind, accion: "arrancar" | "estado" | "detener" }
  */
 
-const KINDS = ["ocr", "ocr-retry", "faces", "watermark"];
+const KINDS = ["ocr", "ocr-retry", "faces", "watermark", "ocr-prueba"];
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
         errores: [],
         corriendo: false,
         error: null,
+        resumen: {},
       });
     }
 
@@ -87,5 +88,6 @@ function respuesta(collectionId: string, kind: ReprocessKind) {
     errores: e?.errores ?? [],
     corriendo: e?.corriendo ?? false,
     error: e?.error ?? null,
+    resumen: e?.resumen ?? {},
   };
 }

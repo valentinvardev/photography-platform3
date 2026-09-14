@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { api } from "~/trpc/react";
 
-type Kind = "ocr" | "ocr-retry" | "faces" | "watermark";
+type Kind = "ocr" | "ocr-retry" | "faces" | "watermark" | "ocr-prueba";
 type Estado = "idle" | "confirmando" | "corriendo" | "listo" | "error";
 
 const ACCIONES: {
@@ -38,6 +38,25 @@ const ACCIONES: {
     descripcion: "Sólo fotos sin ningún rostro indexado.",
     facturado: true,
   },
+  {
+    kind: "ocr-prueba",
+    titulo: "Dorsales con Google Vision (prueba)",
+    descripcion:
+      "Lee las fotos sin dorsal con Google y con Rekognition, guarda lo que lee Google y compara. Necesita GOOGLE_VISION_API_KEY.",
+    facturado: true,
+  },
+];
+
+/** Etiquetas del resumen de la prueba, en el orden en que se muestran. */
+const RESUMEN_PRUEBA: [string, string][] = [
+  ["google", "Google"],
+  ["rekognitionNuevo", "Rekognition filtro nuevo"],
+  ["rekognitionActual", "Rekognition filtro actual"],
+  ["ambos", "ambos"],
+  ["soloGoogle", "sólo Google"],
+  ["soloRekognition", "sólo Rekognition"],
+  ["ninguno", "ninguno"],
+  ["coinciden", "coinciden"],
 ];
 
 function Fila({
@@ -61,6 +80,7 @@ function Fila({
   const [fallidas, setFallidas] = useState(0);
   const [restantes, setRestantes] = useState(pendientes);
   const [motivo, setMotivo] = useState<string | null>(null);
+  const [resumen, setResumen] = useState<Record<string, number>>({});
 
   type Respuesta = {
     procesadas: number;
@@ -69,6 +89,7 @@ function Fila({
     errores: string[];
     corriendo: boolean;
     error: string | null;
+    resumen: Record<string, number>;
   };
 
   const pedir = async (que: "arrancar" | "estado" | "detener"): Promise<Respuesta> => {
@@ -89,6 +110,7 @@ function Fila({
       errores: data.errores ?? [],
       corriendo: data.corriendo ?? false,
       error: data.error ?? null,
+      resumen: data.resumen ?? {},
     };
   };
 
@@ -98,6 +120,7 @@ function Fila({
     setHechas(0);
     setFallidas(0);
     setMotivo(null);
+    setResumen({});
 
     // El request sólo lanza el trabajo y vuelve enseguida. Después se pregunta
     // cómo va: así ninguna llamada queda abierta el tiempo suficiente como para
@@ -106,6 +129,7 @@ function Fila({
       setHechas(r.procesadas);
       setFallidas(r.fallidas);
       setRestantes(r.pendientes);
+      setResumen(r.resumen);
       if (r.errores.length) setMotivo(r.errores[0]!);
       else if (r.error) setMotivo(r.error);
     };
@@ -177,6 +201,12 @@ function Fila({
               </p>
             )}
           </>
+        )}
+        {accion.kind === "ocr-prueba" && (resumen.fotos ?? 0) > 0 && (
+          <p className="mt-1 font-mono text-[10px] leading-[1.6] tracking-[0.06em] text-[color:var(--color-grey-600)] max-w-[520px]">
+            {RESUMEN_PRUEBA.map(([clave, etiqueta]) => `${etiqueta} ${resumen[clave] ?? 0}`).join(" · ")}
+            {` · de ${resumen.fotos}`}
+          </p>
         )}
         {estado === "listo" && motivo && (
           <p className="mt-1 font-mono text-[10px] leading-[1.5] text-[color:var(--color-grey-600)] break-words max-w-[520px]">

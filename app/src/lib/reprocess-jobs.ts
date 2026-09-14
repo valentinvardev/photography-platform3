@@ -18,7 +18,7 @@
 import { db } from "~/server/db";
 import { isVideoMimeType } from "~/lib/video-utils";
 
-export type ReprocessKind = "ocr" | "ocr-retry" | "faces" | "watermark";
+export type ReprocessKind = "ocr" | "ocr-retry" | "faces" | "watermark" | "ocr-prueba";
 
 export type EstadoTrabajo = {
   kind: ReprocessKind;
@@ -30,6 +30,8 @@ export type EstadoTrabajo = {
   corriendo: boolean;
   /** Motivo por el que se cortó, si se cortó mal. */
   error: string | null;
+  /** Contadores propios de cada tipo de trabajo (hoy sólo la prueba de OCR). */
+  resumen: Record<string, number>;
   arrancado: number;
   actualizado: number;
 };
@@ -58,6 +60,10 @@ export function pendingFilter(kind: ReprocessKind) {
       return { faceAttemptedAt: null };
     case "watermark":
       return { previewKey: null };
+    case "ocr-prueba":
+      // Google Vision contra Rekognition sobre las fotos sin dorsal. Se
+      // reintenta lo ya intentado, igual que ocr-retry: es una prueba.
+      return { bibNumber: null };
   }
 }
 
@@ -135,6 +141,7 @@ export function arrancar(collectionId: string, kind: ReprocessKind): EstadoTraba
     errores: [],
     corriendo: true,
     error: null,
+    resumen: {},
     arrancado: Date.now(),
     actualizado: Date.now(),
   };
@@ -172,6 +179,7 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
     "~/lib/photo-processing"
   );
   const { runVideoWatermark } = await import("~/lib/video-processing");
+  const { runOcrPrueba, sumarAlResumen, ErrorGoogleVision } = await import("~/lib/ocr-prueba");
 
   estado.pendientes = await db.photo.count({ where });
 
@@ -269,12 +277,19 @@ async function correr(estado: EstadoTrabajo): Promise<void> {
             // foto. Sólo se descarga si la foto quedó en Supabase, y de eso se
             // encargan ellas mismas.
             if (kind === "ocr" || kind === "ocr-retry") await runOcr(photo.id);
+            else if (kind === "ocr-prueba") sumarAlResumen(estado.resumen, await runOcrPrueba(photo.id));
             else await runFaceIndex(photo.id, collectionId);
           }
           estado.procesadas++;
         } catch (err) {
           anotar(photo.id, mensajeDeError(err));
           console.error(`[reprocess:${kind}] photoId=${photo.id} falló:`, err);
+          // Si Google no responde, seguir sólo quema DetectText en cada foto
+          // para fallar igual. Se corta y el motivo queda visible en el panel.
+          if (err instanceof ErrorGoogleVision) {
+            estado.error = mensajeDeError(err);
+            estado.corriendo = false;
+          }
         } finally {
           estado.actualizado = Date.now();
         }
