@@ -433,6 +433,38 @@ export const photoRouter = createTRPCRouter({
       return photos.map((p) => p.id);
     }),
 
+  /**
+   * Las fotos de la colección para el etiquetado a mano, de una vez y con la
+   * URL del original. El preview no sirve acá: a 1600 px y con la marca de agua
+   * encima, una placa que ocupa el 2 % del alto no se lee. Sin videos, que no
+   * llevan dorsal. Sólo admin: la URL apunta al archivo sin marca.
+   */
+  listForTagging: protectedProcedure
+    .input(z.object({ collectionId: z.string(), soloSinDorsal: z.boolean().default(true) }))
+    .query(async ({ ctx, input }) => {
+      const photos = await ctx.db.photo.findMany({
+        where: {
+          collectionId: input.collectionId,
+          ...(input.soloSinDorsal ? { bibNumber: null } : {}),
+          NOT: { mimeType: { startsWith: "video/" } },
+        },
+        orderBy: { order: "asc" },
+        select: { id: true, filename: true, bibNumber: true, storageKey: true, mimeType: true },
+      });
+      return Promise.all(
+        photos
+          .filter((p) => !/\.(mp4|mov|webm|mkv|m4v)$/i.test(p.filename))
+          .map(async (p) => ({
+            id: p.id,
+            filename: p.filename,
+            bibNumber: p.bibNumber,
+            url: isS3Key(p.storageKey)
+              ? await resolveMediaUrl(p.storageKey, { contentType: p.mimeType ?? undefined })
+              : await createSignedUrl(p.storageKey, 3600),
+          })),
+      );
+    }),
+
   setBibNumber: protectedProcedure
     .input(z.object({ id: z.string(), bibNumber: z.string().nullable() }))
     .mutation(({ ctx, input }) =>

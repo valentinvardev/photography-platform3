@@ -114,8 +114,11 @@ if (candidatas.length === 0) {
 
 // Repartidas a lo largo del álbum, no las primeras N: así entran distintos
 // puntos de la pista, distintas luces y distintos corredores.
-const paso = Math.max(1, Math.ceil(candidatas.length / CANTIDAD));
-const elegidas = candidatas.filter((_, i) => i % paso === 0).slice(0, CANTIDAD);
+const cuantas = Math.min(CANTIDAD, candidatas.length);
+const elegidas = Array.from(
+  { length: cuantas },
+  (_, i) => candidatas[Math.floor((i * candidatas.length) / cuantas)],
+);
 
 console.log(
   `Origen: "${origen.title}" (${origen.id})\n` +

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { ConfirmModal } from "./ConfirmModal";
+import { TagModal } from "./TagModal";
 import { isVideoMimeType } from "~/lib/video-utils";
 
 type Photo = {
@@ -359,6 +360,7 @@ export function PhotoManager({
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [singleConfirm, setSingleConfirm] = useState<string | null>(null);
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [etiquetando, setEtiquetando] = useState(false);
   const [search, setSearch] = useState(q);
 
   const del = api.photo.delete.useMutation({ onSuccess: () => window.location.reload() });
@@ -451,15 +453,34 @@ export function PhotoManager({
               </button>
             </div>
           ) : (
-            <button
-              onClick={() => setSelectMode(true)}
-              className="px-2.5 py-1 border border-[color:var(--color-grey-300)] font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] transition-colors"
-            >
-              Seleccionar
-            </button>
+            <>
+              <button
+                onClick={() => setEtiquetando(true)}
+                className="px-2.5 py-1 border border-[#FFE600] bg-[#FFE600] font-mono text-[9px] uppercase tracking-[0.12em] text-[#0D0D0D] hover:bg-transparent hover:text-[color:var(--color-ink)] transition-colors"
+              >
+                Etiquetar a mano
+              </button>
+              <button
+                onClick={() => setSelectMode(true)}
+                className="px-2.5 py-1 border border-[color:var(--color-grey-300)] font-mono text-[9px] uppercase tracking-[0.12em] text-[color:var(--color-grey-600)] hover:border-[color:var(--color-ink)] transition-colors"
+              >
+                Seleccionar
+              </button>
+            </>
           )}
         </div>
       </div>
+
+      {/* Etiquetado a mano: al cerrar se refresca la galería una sola vez. */}
+      {etiquetando && (
+        <TagModal
+          collectionId={collectionId}
+          onClose={() => {
+            setEtiquetando(false);
+            router.refresh();
+          }}
+        />
+      )}
 
       {/* Grid */}
       {photos.length === 0 ? (
