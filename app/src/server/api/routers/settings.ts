@@ -44,9 +44,15 @@ export const settingsRouter = createTRPCRouter({
       if (!purchase || purchase.status !== "APPROVED" || !purchase.downloadToken) {
         throw new Error("Compra no aprobada o sin token");
       }
-      const photoCount = await ctx.db.photo.count({
-        where: { collectionId: purchase.collectionId, bibNumber: purchase.bibNumber ?? undefined },
-      });
+      // Las fotos que se compraron, igual que en el mail original del webhook.
+      // Antes se contaban las fotos con ese dorsal exacto (o, sin dorsal, TODAS
+      // las de la colección), y con fotos de varios dorsales daba cualquier cosa.
+      let photoCount = 0;
+      try {
+        photoCount = (JSON.parse(purchase.photoIds ?? "[]") as string[]).length;
+      } catch {
+        /* photoIds ilegible: el mail sale sin el número */
+      }
       const photoThumbs = await getPurchasePhotoThumbs(purchase.id, 6);
       await sendPurchaseApprovedEmail({
         to: purchase.buyerEmail,

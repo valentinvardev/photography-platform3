@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { bibsDe } from "~/lib/bib";
 
 export const faceRouter = createTRPCRouter({
   stats: protectedProcedure.query(async ({ ctx }) => {
@@ -34,9 +35,11 @@ export const faceRouter = createTRPCRouter({
         ctx.db.faceRecord.count({ where }),
       ]);
 
-      const orConditions = records
-        .filter((r) => r.photo.bibNumber)
-        .map((r) => ({ collectionId: r.collectionId, bibNumber: r.photo.bibNumber! }));
+      // Una compra guarda el dorsal de UNA persona y la foto puede tener
+      // varios: se busca por cada uno de los dorsales de la foto.
+      const orConditions = records.flatMap((r) =>
+        bibsDe(r.photo.bibNumber).map((bibNumber) => ({ collectionId: r.collectionId, bibNumber })),
+      );
 
       const purchases = orConditions.length > 0
         ? await ctx.db.purchase.findMany({
@@ -64,9 +67,10 @@ export const faceRouter = createTRPCRouter({
           createdAt: r.createdAt,
           photo: r.photo,
           collection: r.collection,
-          purchase: r.photo.bibNumber
-            ? (purchaseMap.get(`${r.collectionId}|${r.photo.bibNumber}`) ?? null)
-            : null,
+          purchase:
+            bibsDe(r.photo.bibNumber)
+              .map((b) => purchaseMap.get(`${r.collectionId}|${b}`))
+              .find((p) => p !== undefined) ?? null,
         })),
         total,
       };

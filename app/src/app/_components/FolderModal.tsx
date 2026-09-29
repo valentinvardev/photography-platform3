@@ -14,9 +14,9 @@ import {
   applyDiscountCode,
   calcularTotal,
   calcularPack,
-  claveDePersona,
-  agruparPorPersona,
+  armarCompra,
 } from "~/lib/pricing";
+import { formatearDorsales } from "~/lib/bib";
 
 type Step = "cart" | "buy" | "email";
 
@@ -66,7 +66,7 @@ function PhotoRow({
           Número
         </p>
         <p className="font-display italic text-[20px] leading-tight text-[color:var(--color-ink)] truncate">
-          {bibNumber ? `#${bibNumber}` : "—"}
+          {bibNumber ? formatearDorsales(bibNumber, 2) : "—"}
         </p>
       </div>
       {total > 0 && (
@@ -88,6 +88,7 @@ export function BibCheckoutModal({
   bib,
   photoIds: initialPhotoIds,
   alcance,
+  preferidos,
   collectionId,
   onClose,
 }: {
@@ -98,6 +99,9 @@ export function BibCheckoutModal({
    *  qué incluye el pack y cuántas fotos cuentan para el descuento por cantidad.
    *  Viene con el dorsal de cada una porque el descuento se aplica por persona. */
   alcance: { id: string; bibNumber: string | null }[];
+  /** Los dorsales que la persona buscó. Desempatan de quién es una foto con
+   *  varios dorsales, igual que en el servidor. */
+  preferidos: string[];
   collectionId: string;
   onClose: () => void;
 }) {
@@ -126,7 +130,6 @@ export function BibCheckoutModal({
   const tiers = parseTiers(collectionInfo?.discountTiers);
   const discountCodes = parseDiscountCodes(collectionInfo?.discountCodes);
   const packPrice = collectionInfo?.packPrice ?? null;
-  const allPhotoIds = alcance.map((a) => a.id);
 
   const discountResult = applyDiscountCode(0, discountCodeInput.trim() || null, discountCodes);
   const appliedDiscount = discountCodeInput.trim()
@@ -136,15 +139,17 @@ export function BibCheckoutModal({
   const dorsalPorFoto = new Map(alcance.map((a) => [a.id, a.bibNumber]));
   const priceById = new Map(cartItems.map((i) => [i.photoId, i.price]));
 
-  // Cuántas fotos hay de cada persona en el alcance. Es lo que decide el tramo,
-  // y se calcula igual que en el servidor: por persona, no sobre el total del
-  // carrito. Si acá se mostrara otra cosa, el precio del checkout no coincidiría
-  // con el que termina cobrando MercadoPago.
-  const fotosPorPersona = new Map<string, number>();
-  for (const a of alcance) {
-    const clave = claveDePersona(a.bibNumber);
-    fotosPorPersona.set(clave, (fotosPorPersona.get(clave) ?? 0) + 1);
-  }
+  // La compra se arma con la misma función que usa el servidor para cobrar:
+  // de quién es cada foto, qué entra en el pack y cuántas fotos de cada persona
+  // cuentan para el tramo. Si acá se calculara distinto, el precio del checkout
+  // no coincidiría con el que termina cobrando MercadoPago. Se recalcula con
+  // las elegidas de ahora: si la persona saca fotos, el alcance se achica.
+  const compra = armarCompra(
+    photoIds.map((id) => ({ id, bibNumber: dorsalPorFoto.get(id) ?? null })),
+    alcance,
+    preferidos,
+  );
+  const allPhotoIds = compra.alcance.map((a) => a.id);
 
   const paraPrecio = (ids: string[]) =>
     ids.map((id) => ({
@@ -155,16 +160,14 @@ export function BibCheckoutModal({
 
   /** Precio de una foto suelta, ya con el tramo de SU persona. */
   const getPhotoPrice = (id: string) =>
-    calcularTotal(paraPrecio([id]), fotosPorPersona, basePrice, tiers);
+    calcularTotal(paraPrecio([id]), compra, basePrice, tiers);
 
-  // Cuántas personas distintas entran en el pack. El servidor llega al mismo
-  // número: el alcance son las elegidas más las de sus mismos dorsales, así que
-  // las personas del alcance y las de la selección son las mismas.
-  const personas = agruparPorPersona(alcance).size;
+  // Cuántas personas distintas entran en el pack: dos personas, dos packs.
+  const personas = compra.claves.size;
 
   const rawTotal = packMode
     ? calcularPack(packPrice ?? 0, personas)
-    : calcularTotal(paraPrecio(photoIds), fotosPorPersona, basePrice, tiers);
+    : calcularTotal(paraPrecio(photoIds), compra, basePrice, tiers);
   const selectedTotal = appliedDiscount
     ? Math.round(rawTotal * (1 - appliedDiscount.percent / 100))
     : rawTotal;
@@ -205,6 +208,7 @@ export function BibCheckoutModal({
       buyerPhone: phone || undefined,
       packMode: packMode || undefined,
       discountCode: appliedDiscount ? discountCodeInput.trim() : undefined,
+      dorsales: preferidos.length > 0 ? preferidos : undefined,
     });
   };
 

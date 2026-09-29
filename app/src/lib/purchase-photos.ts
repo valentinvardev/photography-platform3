@@ -3,6 +3,7 @@ import "server-only";
 import { db } from "~/server/db";
 import { getCFUrl, createS3DownloadUrl, isS3Key } from "~/lib/s3";
 import { createSignedUrl } from "~/lib/supabase/admin";
+import { filtroDorsal, normalizeBib } from "~/lib/bib";
 
 export type PurchasePhotoThumb = { id: string; filename: string; url: string };
 
@@ -29,7 +30,7 @@ export async function getPurchasePhotoThumbs(
 
   if (ids.length === 0 && purchase.bibNumber) {
     const photos = await db.photo.findMany({
-      where: { collectionId: purchase.collectionId, bibNumber: purchase.bibNumber },
+      where: { collectionId: purchase.collectionId, ...filtroDorsal(normalizeBib(purchase.bibNumber)) },
       orderBy: { order: "asc" },
       select: { id: true },
     });

@@ -11,10 +11,9 @@ import {
   applyDiscountCode,
   calcularTotal,
   calcularPack,
-  claveDePersona,
-  agruparPorPersona,
+  armarCompra,
 } from "~/lib/pricing";
-import { normalizeBib } from "~/lib/bib";
+import { filtroDorsal, normalizeBib } from "~/lib/bib";
 import {
   createTRPCRouter,
   protectedProcedure,
@@ -57,6 +56,9 @@ export const purchaseRouter = createTRPCRouter({
         buyerPhone: z.string().optional(),
         packMode: z.boolean().optional(),
         discountCode: z.string().optional(),
+        /** Los dorsales que la persona buscó. Sólo desempata entre los que la
+         *  foto ya tiene: ver `asignarPersonas`. */
+        dorsales: z.array(z.string().max(20)).max(50).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -72,75 +74,45 @@ export const purchaseRouter = createTRPCRouter({
       if (photos.length === 0) throw new Error("No se encontraron fotos válidas para comprar.");
 
       // El alcance de la compra lo decide el servidor, no el cliente: las fotos
-      // elegidas más todas las del mismo dorsal. De ahí sale qué incluye el pack
-      // y cuántas fotos cuentan para el descuento por cantidad. Si viniera del
-      // cliente se podría pagar el pack por la colección entera o forzar el
-      // tramo más barato.
-      const bibs = [...new Set(photos.map((p) => p.bibNumber).filter((b): b is string => !!b))];
-      const normalizedBibs = new Set(bibs.map(normalizeBib).filter((b) => b !== ""));
-
-      // El mismo dorsal puede estar escrito de varias formas ("42", "0042"),
-      // así que juntamos todas las variantes antes de armar el alcance.
-      const bibVariants = normalizedBibs.size > 0
-        ? (await ctx.db.photo.groupBy({
-            by: ["bibNumber"],
-            where: { collectionId: input.collectionId, bibNumber: { not: null } },
-          }))
-            .map((r) => r.bibNumber)
-            .filter((b): b is string => !!b && normalizedBibs.has(normalizeBib(b)))
-        : [];
-
-      const sameBibPhotos = bibVariants.length > 0
-        ? await ctx.db.photo.findMany({
-            where: { collectionId: input.collectionId, bibNumber: { in: bibVariants } },
-            select: { id: true, price: true, bibNumber: true },
-          })
-        : [];
-
-      type ScopePhoto = { id: string; price: number | null; bibNumber: string | null };
-      const scope = new Map<string, ScopePhoto>();
-      for (const p of [...photos, ...sameBibPhotos]) {
-        scope.set(p.id, {
-          id: p.id,
-          price: p.price !== null ? Number(p.price) : null,
-          bibNumber: p.bibNumber,
-        });
-      }
-
-      // Cuántas fotos hay de cada persona. Es lo que decide el tramo de
-      // descuento, y va por persona y no sobre el total del carrito: la
-      // promoción es "llevá más fotos tuyas", no juntar fotos de gente
-      // distinta hasta llegar a la cantidad.
-      const fotosPorPersona = new Map<string, number>();
-      for (const p of scope.values()) {
-        const clave = claveDePersona(p.bibNumber);
-        fotosPorPersona.set(clave, (fotosPorPersona.get(clave) ?? 0) + 1);
-      }
-
-      /** Las personas que la compra realmente involucra. */
-      const personas = agruparPorPersona([...photos]).size;
+      // elegidas más todas las que tienen el dorsal de alguna de esas personas.
+      // De ahí sale qué incluye el pack y cuántas fotos cuentan para el
+      // descuento. Si viniera del cliente se podría pagar el pack por la
+      // colección entera o forzar el tramo más barato.
+      //
+      // Se traen todas las fotos con dorsal de la colección (id, precio y
+      // dorsal: unas pocas decenas de KB) porque una foto puede tener varios
+      // dorsales y la coincidencia se decide dorsal por dorsal en memoria, con
+      // la misma función que usa el checkout para mostrar el precio.
+      const aPrecio = (p: { id: string; price: { toNumber(): number } | null; bibNumber: string | null }) => ({
+        id: p.id,
+        price: p.price !== null ? p.price.toNumber() : null,
+        bibNumber: p.bibNumber,
+      });
+      const conDorsal = await ctx.db.photo.findMany({
+        where: { collectionId: input.collectionId, bibNumber: { not: null } },
+        select: { id: true, price: true, bibNumber: true },
+      });
+      const compra = armarCompra(
+        photos.map(aPrecio),
+        conDorsal.map(aPrecio),
+        input.dorsales ?? [],
+      );
 
       const packActive =
         input.packMode === true &&
         collection.packPrice !== null &&
         collection.packPrice !== undefined;
-      const purchasedPhotos = packActive
-        ? [...scope.values()]
-        : photos.map((p) => ({
-            id: p.id,
-            price: p.price !== null ? Number(p.price) : null,
-            bibNumber: p.bibNumber,
-          }));
+      const purchasedPhotos = packActive ? compra.alcance : photos.map(aPrecio);
 
       let totalAmount: number;
 
       if (packActive) {
-        // El pack es "todas las fotos de tu dorsal": dos dorsales son dos packs.
-        totalAmount = calcularPack(Number(collection.packPrice), personas);
+        // El pack es "todas las fotos de tu dorsal": dos personas son dos packs.
+        totalAmount = calcularPack(Number(collection.packPrice), compra.claves.size);
       } else {
         totalAmount = calcularTotal(
           purchasedPhotos,
-          fotosPorPersona,
+          compra,
           Number(collection.pricePerBib),
           parseTiers(collection.discountTiers),
         );
@@ -156,9 +128,10 @@ export const purchaseRouter = createTRPCRouter({
       const purchase = await ctx.db.purchase.create({
         data: {
           collectionId: input.collectionId,
-          // Guardamos el dorsal cuando la compra es de uno solo: es lo que usa
-          // "ya compré, acceder con email" para encontrar la descarga.
-          bibNumber: normalizedBibs.size === 1 ? bibs[0]! : null,
+          // Guardamos el dorsal cuando la compra es de una sola persona: es lo
+          // que usa "ya compré, acceder con email" para encontrar la descarga.
+          // Va el dorsal de la persona, no la lista entera de una foto.
+          bibNumber: compra.dorsales.length === 1 ? compra.dorsales[0]! : null,
           buyerEmail: input.buyerEmail,
           buyerName: input.buyerName,
           buyerLastName: input.buyerLastName,
@@ -212,11 +185,16 @@ export const purchaseRouter = createTRPCRouter({
   accessByEmail: publicProcedure
     .input(z.object({ email: z.string().email(), collectionId: z.string(), bibNumber: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
+      // Las compras nuevas guardan el dorsal normalizado ("42"); las viejas,
+      // como estaba escrito en la foto ("0042"). Se aceptan las dos formas.
+      const dorsal = input.bibNumber
+        ? { in: [...new Set([input.bibNumber, normalizeBib(input.bibNumber)])] }
+        : undefined;
       const purchase = await ctx.db.purchase.findFirst({
         where: {
           buyerEmail: { equals: input.email, mode: "insensitive" },
           collectionId: input.collectionId,
-          bibNumber: input.bibNumber,
+          bibNumber: dorsal,
           status: "APPROVED",
           downloadToken: { not: null },
         },
@@ -258,12 +236,15 @@ export const purchaseRouter = createTRPCRouter({
         }),
       );
 
-      const suggestions = purchase.bibNumber
+      // "También aparecés en…": fotos de otros eventos que tengan este dorsal,
+      // solo o junto a otros. Comparar el valor entero se perdía casi todas.
+      const delDorsal = purchase.bibNumber ? filtroDorsal(normalizeBib(purchase.bibNumber)) : null;
+      const suggestions = purchase.bibNumber && delDorsal
         ? await ctx.db.collection.findMany({
             where: {
               isPublished: true,
               id: { not: purchase.collectionId },
-              photos: { some: { bibNumber: purchase.bibNumber } },
+              photos: { some: delDorsal },
               purchases: {
                 none: {
                   buyerEmail: purchase.buyerEmail,
@@ -279,7 +260,7 @@ export const purchaseRouter = createTRPCRouter({
               coverUrl: true,
               pricePerBib: true,
               eventDate: true,
-              _count: { select: { photos: { where: { bibNumber: purchase.bibNumber } } } },
+              _count: { select: { photos: { where: delDorsal } } },
             },
           })
         : [];

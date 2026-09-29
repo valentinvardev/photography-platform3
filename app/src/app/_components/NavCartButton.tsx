@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCart } from "./CartContext";
 import { Sheet } from "~/app/_components/design/Sheet";
+import { formatearDorsales } from "~/lib/bib";
 
 export function NavCartButton({ price }: { price: number }) {
   const { items, clear, toggle } = useCart();
@@ -112,7 +113,7 @@ export function NavCartButton({ price }: { price: number }) {
                         Número
                       </p>
                       <p className="font-display italic text-[20px] leading-tight text-white truncate">
-                        {item.bibNumber ? `#${item.bibNumber}` : "—"}
+                        {item.bibNumber ? formatearDorsales(item.bibNumber, 2) : "—"}
                       </p>
                     </div>
                     {item.price > 0 && (

@@ -10,9 +10,9 @@ import {
 import { resolveMediaUrl } from "~/lib/media";
 import { isVideoMimeType } from "~/lib/video-utils";
 import {
-  bibSimilarity,
+  bibsDe,
+  buscarDorsal,
   normalizeBib,
-  MAX_SUGGESTED_BIBS,
   MAX_SUGGESTED_PHOTOS,
   type BibMatchLevel,
 } from "~/lib/bib";
@@ -119,51 +119,25 @@ export const photoRouter = createTRPCRouter({
       const empty: BibSearchResult = { exact: [], fuzzy: [] };
       if (!q) return empty;
 
-      // Los dorsales de la colección, una sola vez. Comparar acá (y no con un
-      // `contains` en SQL) es lo que permite que #42 y #0042 sean el mismo
-      // dorsal y que #104 no arrastre a #1042.
+      // Los valores distintos de la colección, una sola vez, y la comparación en
+      // memoria dorsal por dorsal. Un valor puede traer varios ("1559,1734"):
+      // compararlo entero dejaba a esas fotos fuera de toda búsqueda, y en una
+      // carrera de calle son la mayoría. Ver `buscarDorsal` en ~/lib/bib.
       const distinct = await ctx.db.photo.groupBy({
         by: ["bibNumber"],
         where: { collectionId: input.collectionId, bibNumber: { not: null } },
       });
 
-      const exactBibs: string[] = [];
-      const similar: { bib: string; level: BibMatchLevel }[] = [];
-      for (const row of distinct) {
-        const raw = row.bibNumber;
-        if (!raw) continue;
-        const n = normalizeBib(raw);
-        if (!n) continue;
-        if (n === q) {
-          exactBibs.push(raw);
-          continue;
-        }
-        const level = bibSimilarity(q, n);
-        if (level !== null) similar.push({ bib: raw, level });
-      }
-
-      // Si ya encontramos el dorsal, sólo mostramos parecidos de confianza alta
-      // o media. Sin coincidencia exacta abrimos la mano: ahí el parecido es la
-      // única pista que le queda a la persona.
-      const maxLevel = exactBibs.length > 0 ? 2 : 3;
-      const similarBibs = similar
-        .filter((s) => s.level <= maxLevel)
-        .sort(
-          (a, b) =>
-            a.level - b.level ||
-            a.bib.localeCompare(b.bib, "es", { numeric: true }),
-        )
-        .slice(0, MAX_SUGGESTED_BIBS);
-
-      if (exactBibs.length === 0 && similarBibs.length === 0) return empty;
-
-      const levelByBib = new Map(similarBibs.map((s) => [s.bib, s.level]));
-      const rankByBib = new Map(similarBibs.map((s, i) => [s.bib, i]));
+      const { exactos, parecidos } = buscarDorsal(
+        q,
+        distinct.map((r) => r.bibNumber).filter((b): b is string => !!b),
+      );
+      if (exactos.length === 0 && parecidos.length === 0) return empty;
 
       const rows = await ctx.db.photo.findMany({
         where: {
           collectionId: input.collectionId,
-          bibNumber: { in: [...exactBibs, ...similarBibs.map((s) => s.bib)] },
+          bibNumber: { in: [...new Set([...exactos, ...parecidos.flatMap((p) => p.valores)])] },
           // Ídem que en listAll: sin preview no sale a la vista pública.
           previewKey: { not: null },
         },
@@ -171,38 +145,44 @@ export const photoRouter = createTRPCRouter({
         select,
       });
 
-      const exactSet = new Set(exactBibs);
-      const exact = rows.filter((r) => r.bibNumber && exactSet.has(r.bibNumber));
-      const fuzzy = rows
-        .filter((r) => r.bibNumber && rankByBib.has(r.bibNumber))
-        // sort estable: dentro de cada dorsal se mantiene el orden original
-        .sort((a, b) => rankByBib.get(a.bibNumber!)! - rankByBib.get(b.bibNumber!)!)
-        .slice(0, MAX_SUGGESTED_PHOTOS);
-
       const normPrice = (p: (typeof rows)[number]) => ({
         ...p,
         price: p.price !== null ? p.price.toNumber() : null,
       });
 
-      const groupByBib = (photos: typeof rows) => {
-        const map = new Map<string, typeof rows>();
-        for (const p of photos) {
-          const key = p.bibNumber ?? "?";
-          if (!map.has(key)) map.set(key, []);
-          map.get(key)!.push(p);
+      const exact = rows.filter((r) => bibsDe(r.bibNumber).includes(q));
+      const enExacto = new Set(exact.map((r) => r.id));
+
+      // Cada foto parecida va una sola vez, en el grupo del parecido mejor
+      // rankeado que tenga. Si además tiene el dorsal buscado, ya salió arriba.
+      const rango = new Map(parecidos.map((p, i) => [p.bib, i]));
+      const porParecido = new Map<string, typeof rows>();
+      for (const r of rows) {
+        if (enExacto.has(r.id)) continue;
+        let mejor: string | null = null;
+        for (const b of bibsDe(r.bibNumber)) {
+          if (rango.has(b) && (mejor === null || rango.get(b)! < rango.get(mejor)!)) mejor = b;
         }
-        return Array.from(map.entries()).map(([bib, photos]) => ({
-          bib,
-          photos: photos.map(normPrice),
-        }));
-      };
+        if (mejor === null) continue;
+        const lista = porParecido.get(mejor) ?? [];
+        lista.push(r);
+        porParecido.set(mejor, lista);
+      }
+
+      let restantes = MAX_SUGGESTED_PHOTOS;
+      const fuzzy = parecidos
+        .map((p) => {
+          const fotos = (porParecido.get(p.bib) ?? []).slice(0, Math.max(0, restantes));
+          restantes -= fotos.length;
+          return { bib: p.bib, level: p.level, photos: fotos.map(normPrice) };
+        })
+        .filter((g) => g.photos.length > 0);
 
       return {
-        exact: groupByBib(exact),
-        fuzzy: groupByBib(fuzzy).map((g) => ({
-          ...g,
-          level: levelByBib.get(g.bib) ?? 3,
-        })),
+        // Un solo grupo con el dorsal buscado: el cliente lo usa como la
+        // persona de esas fotos, no la lista completa de cada una.
+        exact: exact.length > 0 ? [{ bib: q, photos: exact.map(normPrice) }] : [],
+        fuzzy,
       };
     }),
 

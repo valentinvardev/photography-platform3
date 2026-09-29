@@ -6,7 +6,8 @@ import { api } from "~/trpc/react";
 import { BibCheckoutModal } from "~/app/_components/FolderModal";
 import { useCart } from "~/app/_components/CartContext";
 import { Lightbox } from "~/app/_components/design/Lightbox";
-import { normalizeBib } from "~/lib/bib";
+import { bibsDe, formatearDorsales } from "~/lib/bib";
+import { armarCompra } from "~/lib/pricing";
 
 // ─── Photo tile ───────────────────────────────────────────────────────────────
 // URL is passed from parent batch query — no per-tile API call.
@@ -59,7 +60,8 @@ const PhotoTile = memo(function PhotoTile({
           <div className="absolute top-2 left-2 z-10 flex items-center gap-1">
             {bibNumber && (
               <span className="font-sans font-black text-[10px] uppercase tracking-[0.1em] bg-[#1A1A1A]/80 text-white px-2 py-0.5">
-                #{bibNumber}
+                {/* Una foto de calle puede traer nueve dorsales: en la miniatura va uno y la cuenta. */}
+                {formatearDorsales(bibNumber, 1)}
               </span>
             )}
             {isFuzzy && (
@@ -253,6 +255,8 @@ export function FolderBrowser({
     bib: string;
     photoIds: string[];
     alcance: { id: string; bibNumber: string | null }[];
+    /** Los dorsales que la persona buscó: dicen de quién es cada foto. */
+    preferidos: string[];
   } | null>(null);
   const [lightbox, setLightbox] = useState<{
     url: string;
@@ -300,13 +304,21 @@ export function FolderBrowser({
     { enabled: hasSearch },
   );
 
-  // Memoize derived search arrays to avoid recreating them every render
+  // En la búsqueda, el dorsal de cada foto es el que la trajo, no la lista
+  // entera que tiene guardada ("1559,1734,6108"): es lo que la miniatura
+  // muestra y lo que el carrito recuerda como "de quién es esta foto".
   const exactPhotos = useMemo(
-    () => searchData?.exact.flatMap((g) => g.photos.map((p) => ({ ...p, isFuzzy: false as const }))) ?? [],
+    () =>
+      searchData?.exact.flatMap((g) =>
+        g.photos.map((p) => ({ ...p, bibNumber: g.bib, isFuzzy: false as const })),
+      ) ?? [],
     [searchData],
   );
   const fuzzyPhotos = useMemo(
-    () => searchData?.fuzzy.flatMap((g) => g.photos.map((p) => ({ ...p, isFuzzy: true as const }))) ?? [],
+    () =>
+      searchData?.fuzzy.flatMap((g) =>
+        g.photos.map((p) => ({ ...p, bibNumber: g.bib, isFuzzy: true as const })),
+      ) ?? [],
     [searchData],
   );
   const similarBibCount = searchData?.fuzzy.length ?? 0;
@@ -394,37 +406,34 @@ export function FolderBrowser({
   useEffect(() => { mimeTypeMapRef.current = mimeTypeMap; }, [mimeTypeMap]);
 
   /**
-   * Alcance de la compra: las fotos elegidas más todas las que comparten dorsal
-   * con alguna de ellas. Es lo que se cobra como pack y lo que cuenta para el
-   * descuento por cantidad, así que nunca entran acá las fotos de dorsales
-   * parecidos que la persona no eligió. El servidor recalcula lo mismo antes de
-   * cobrar; esto es sólo para mostrar el precio correcto de antemano.
+   * La compra, armada con la misma función que usa el servidor para cobrar
+   * (`armarCompra`): de quién es cada foto, y el alcance —las elegidas más
+   * todas las que tienen el dorsal de alguna de esas personas—. Es lo que se
+   * cobra como pack y lo que cuenta para el descuento, así que nunca entran
+   * fotos de dorsales parecidos que la persona no eligió. Las fotos van con
+   * TODOS sus dorsales guardados: la persona de cada una se decide adentro.
    */
-  const buildPurchaseScope = useCallback((selectedIds: string[]) => {
+  const buildPurchase = useCallback((selectedIds: string[], preferidos: string[]) => {
     const ap = allPhotosRef.current ?? [];
     const byId = new Map(ap.map((p) => [p.id, p]));
-    const bibs = new Set<string>();
-    for (const id of selectedIds) {
-      const bib = normalizeBib(byId.get(id)?.bibNumber);
-      if (bib) bibs.add(bib);
-    }
-    const ids = new Set(selectedIds);
-    if (bibs.size > 0) {
-      for (const p of ap) if (bibs.has(normalizeBib(p.bibNumber))) ids.add(p.id);
-    }
-    // Va con el dorsal de cada foto porque el descuento por cantidad se aplica
-    // por persona, y el modal necesita poder agruparlas.
-    return [...ids].map((id) => ({ id, bibNumber: byId.get(id)?.bibNumber ?? null }));
+    const elegidas = selectedIds.map((id) => ({ id, bibNumber: byId.get(id)?.bibNumber ?? null }));
+    const todas = ap
+      .filter((p) => p.bibNumber)
+      .map((p) => ({ id: p.id, bibNumber: p.bibNumber }));
+    return armarCompra(elegidas, todas, preferidos);
   }, []);
 
   // Stable handlers — same reference across renders, so memo'd tiles don't re-render
   const handleOpenLightbox = useCallback((photoId: string, bibNumber: string | null, url: string) => {
     const ap = allPhotosRef.current;
     const vp = visiblePhotosRef.current;
-    const nBib = normalizeBib(bibNumber);
+    // "Las fotos de este dorsal" sólo tiene sentido si se sabe de quién es la
+    // foto. Desde la búsqueda viene un solo dorsal; desde la galería puede
+    // venir la lista entera, y ahí no hay forma de saber cuál es el que mira.
+    const mios = bibsDe(bibNumber);
     const sameBibIds =
-      nBib && ap
-        ? ap.filter((ph) => normalizeBib(ph.bibNumber) === nBib).map((ph) => ph.id)
+      mios.length === 1 && ap
+        ? ap.filter((ph) => bibsDe(ph.bibNumber).includes(mios[0]!)).map((ph) => ph.id)
         : [photoId];
     const idx = vp.findIndex((v) => v.id === photoId);
     const meta = mimeTypeMapRef.current.get(photoId);
@@ -451,11 +460,17 @@ export function FolderBrowser({
   const cartCheckout = useCallback(() => {
     const items = cartItemsRef.current;
     if (items.length === 0) return;
-    const allBibs = [...new Set(items.map((i) => i.bibNumber).filter(Boolean))];
-    const bib = allBibs.length === 1 ? (allBibs[0] ?? "") : "";
-    const scope = buildPurchaseScope(items.map((i) => i.photoId));
-    setModal({ bib, photoIds: items.map((i) => i.photoId), alcance: scope });
-  }, [buildPurchaseScope]);
+    // Lo que el carrito recuerda de cada foto: desde la búsqueda, el dorsal
+    // buscado; desde la galería, todos los de la foto.
+    const preferidos = [...new Set(items.flatMap((i) => bibsDe(i.bibNumber)))];
+    const compra = buildPurchase(items.map((i) => i.photoId), preferidos);
+    setModal({
+      bib: compra.dorsales.length === 1 ? compra.dorsales[0]! : "",
+      photoIds: items.map((i) => i.photoId),
+      alcance: compra.alcance,
+      preferidos,
+    });
+  }, [buildPurchase]);
 
   // Checkout event listener — stable, never re-subscribes on cart changes
   useEffect(() => {
@@ -911,16 +926,18 @@ export function FolderBrowser({
                   {lightbox.bibNumber ? "Dorsal" : "Sin dorsal"}
                 </p>
                 <p className="font-display italic text-[24px] text-[color:var(--color-paper)]">
-                  {lightbox.bibNumber ? `#${lightbox.bibNumber}` : "—"}
+                  {lightbox.bibNumber ? formatearDorsales(lightbox.bibNumber) : "—"}
                 </p>
               </div>
               <button
                 onClick={() => {
-                  const scope = buildPurchaseScope(lightbox.photoIds);
+                  const preferidos = bibsDe(lightbox.bibNumber);
+                  const compra = buildPurchase(lightbox.photoIds, preferidos);
                   setModal({
-                    bib: lightbox.bibNumber ?? "",
+                    bib: compra.dorsales.length === 1 ? compra.dorsales[0]! : "",
                     photoIds: lightbox.photoIds,
-                    alcance: scope,
+                    alcance: compra.alcance,
+                    preferidos,
                   });
                   setLightbox(null);
                 }}
@@ -948,6 +965,7 @@ export function FolderBrowser({
           bib={modal.bib}
           photoIds={modal.photoIds}
           alcance={modal.alcance}
+          preferidos={modal.preferidos}
           collectionId={collectionId}
           onClose={() => setModal(null)}
         />

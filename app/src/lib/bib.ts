@@ -113,3 +113,93 @@ export function bibSimilarity(query: string, candidate: string): BibMatchLevel |
     query.length < candidate.length ? [query, candidate] : [candidate, query];
   return isSingleEdit(short, long) ? 2 : null;
 }
+
+// ── Fotos con varios dorsales ─────────────────────────────────────────────────
+//
+// `Photo.bibNumber` guarda TODOS los dorsales de la foto separados por coma:
+// "1559,1734,6108". Así lo escribe el OCR y así lo edita el admin. En una
+// carrera de calle es lo normal —en MARATON COLEGIO DE ABOGADOS el 70 % de las
+// fotos tiene más de uno— así que nada puede comparar el valor entero: hay que
+// separarlo. Comparar el valor entero dejaba a 867 de 1015 corredores sin
+// ninguna foto al buscar su número.
+
+/** Los dorsales de una foto, normalizados y sin repetir, en el orden guardado. */
+export function bibsDe(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  const vistos = new Set<string>();
+  for (const parte of raw.split(/[,;]/)) {
+    const n = normalizeBib(parte);
+    if (n) vistos.add(n);
+  }
+  return [...vistos];
+}
+
+/** "#1559 · #1734", o "#1559 +2" si se pasa `max` y hay más. */
+export function formatearDorsales(raw: string | null | undefined, max = Infinity): string {
+  const bibs = bibsDe(raw);
+  const visibles = bibs.slice(0, max).map((b) => `#${b}`).join(" · ");
+  return bibs.length > max ? `${visibles} +${bibs.length - max}` : visibles;
+}
+
+/**
+ * Filtro de Prisma para "la foto tiene este dorsal", del lado de la base.
+ * Espera el dorsal en su forma canónica (normalizado) y cubre las cuatro
+ * posiciones posibles en la lista. Para lo que no necesita la precisión de
+ * `bibsDe` —sugerencias, conteos—, sin traer las filas a memoria.
+ */
+export function filtroDorsal(bib: string) {
+  return {
+    OR: [
+      { bibNumber: bib },
+      { bibNumber: { startsWith: `${bib},` } },
+      { bibNumber: { endsWith: `,${bib}` } },
+      { bibNumber: { contains: `,${bib},` } },
+    ],
+  };
+}
+
+export type CoincidenciasDorsal = {
+  /** Valores guardados que contienen el dorsal buscado. */
+  exactos: string[];
+  /** Dorsales parecidos, ordenados de más a menos probable y ya recortados. */
+  parecidos: { bib: string; level: BibMatchLevel; valores: string[] }[];
+};
+
+/**
+ * Qué valores guardados contienen el dorsal buscado, y qué dorsales se le
+ * parecen. Compara dorsal por dorsal, no el valor entero.
+ *
+ * `valores` son los distintos `bibNumber` de la colección, tal como están.
+ */
+export function buscarDorsal(buscado: string, valores: string[]): CoincidenciasDorsal {
+  const q = normalizeBib(buscado);
+  if (!q) return { exactos: [], parecidos: [] };
+
+  const porDorsal = new Map<string, Set<string>>();
+  for (const valor of valores) {
+    for (const b of bibsDe(valor)) {
+      const lista = porDorsal.get(b) ?? new Set<string>();
+      lista.add(valor);
+      porDorsal.set(b, lista);
+    }
+  }
+
+  const exactos = [...(porDorsal.get(q) ?? [])];
+
+  const similares: { bib: string; level: BibMatchLevel; valores: string[] }[] = [];
+  for (const [b, vs] of porDorsal) {
+    if (b === q) continue;
+    const level = bibSimilarity(q, b);
+    if (level !== null) similares.push({ bib: b, level, valores: [...vs] });
+  }
+
+  // Si el dorsal apareció, sólo parecidos de confianza alta o media. Sin
+  // coincidencia exacta se abre la mano: es la única pista que queda.
+  const maxLevel = exactos.length > 0 ? 2 : 3;
+  const parecidos = similares
+    .filter((s) => s.level <= maxLevel)
+    .sort((a, b) => a.level - b.level || a.bib.localeCompare(b.bib, "es", { numeric: true }))
+    .slice(0, MAX_SUGGESTED_BIBS);
+
+  return { exactos, parecidos };
+}

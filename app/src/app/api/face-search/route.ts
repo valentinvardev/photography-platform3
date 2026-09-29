@@ -3,6 +3,7 @@ import { SearchFacesByImageCommand } from "@aws-sdk/client-rekognition";
 import { db } from "~/server/db";
 import { billedCall, rekognition, rekognitionCollectionId } from "~/lib/rekognition";
 import { clientIp, rateLimit } from "~/lib/rate-limit";
+import { asignarPersonas, CLAVE_SIN_DORSAL } from "~/lib/pricing";
 
 /**
  * Búsqueda por selfie. Es el único endpoint público que gasta plata en AWS:
@@ -136,9 +137,13 @@ export async function POST(req: NextRequest) {
       select: { id: true, bibNumber: true },
     });
 
+    // Se agrupa por persona, no por el valor guardado: en una foto con
+    // "1559,1734" quien se sacó la selfie es uno solo, y el dorsal que más se
+    // repite entre las fotos donde aparece su cara es casi seguro el suyo.
+    const personaDe = asignarPersonas(photos);
     const bibMap = new Map<string, string[]>();
     for (const p of photos) {
-      const key = p.bibNumber ?? "sin-dorsal";
+      const key = personaDe.get(p.id) ?? CLAVE_SIN_DORSAL;
       if (!bibMap.has(key)) bibMap.set(key, []);
       bibMap.get(key)!.push(p.id);
     }
